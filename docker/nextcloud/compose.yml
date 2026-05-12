@@ -1,0 +1,86 @@
+services:
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${NEXTCLOUD_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${NEXTCLOUD_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${NEXTCLOUD_POSTGRES_DB}
+    volumes:
+      - /data/docker/nextcloud/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NEXTCLOUD_POSTGRES_USER} -d ${NEXTCLOUD_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      sh -c '
+        if [ -n "$$REDIS_PASSWORD" ]; then
+          redis-server --requirepass $$REDIS_PASSWORD
+        else
+          redis-server
+        fi
+      '
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - /data/docker/nextcloud/redis:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+    networks:
+      - internal
+
+  nextcloud:
+    image: nextcloud:28-apache
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_USER: ${NEXTCLOUD_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${NEXTCLOUD_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${NEXTCLOUD_POSTGRES_DB}
+      NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_HOST_PORT: "6379"
+      # Uncomment if REDIS_PASSWORD is set in .env:
+      # REDIS_HOST_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - /data/docker/nextcloud/html:/var/www/html
+      - /data/docker/nextcloud/data:/var/www/html/data
+      - /data/docker/nextcloud/config:/var/www/html/config
+      - /data/docker/nextcloud/apps:/var/www/html/custom_apps
+      - /data/docker/nextcloud/themes:/var/www/html/themes
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
