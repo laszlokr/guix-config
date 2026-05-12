@@ -24,7 +24,7 @@ services:
       - internal
 
   odoo:
-    image: odoo:17.0
+    image: odoo:18.0
     restart: unless-stopped
     depends_on:
       db:

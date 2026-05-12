@@ -2,16 +2,16 @@
 
 (list (channel
         (name 'guix)
-        (url "https://git.savannah.gnu.org/git/guix.git")
+        (url "https://codeberg.org/guix/guix.git")
         (branch "master")
         (commit
-          "ff5a9f32dbb7e5dc15c4f9ff5b0dbd97671c9d84")
+          "03ce76718c41b32d174713c945d269d6fcdd8bf1")
         (introduction
           (make-channel-introduction
             "9edb3f66fd807b096b48283debdcddccfea34bad"
             (openpgp-fingerprint
               "BBB0 2DDF 2CEA F6A8 0D1D  E643 A2A0 6DF2 A33A 54FA"))))
-      (channel
+       (channel
         (name 'nonguix)
         (url "https://gitlab.com/nonguix/nonguix")
         (branch "master")
