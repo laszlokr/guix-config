@@ -38,7 +38,7 @@
         (url "https://codeberg.org/fishinthecalculator/small-guix")
         (branch "master")
         (commit
-          "d9e95224b2a80e38455c02df6efd28dc06754766")
+          "6a96653a0a10f65c662d42c02f10c3ebb7a05c48")
         (introduction
           (make-channel-introduction
             "f260da13666cd41ae3202270784e61e062a3999c"
