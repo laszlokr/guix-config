@@ -1,0 +1,50 @@
+* Laszlo's GNU Guix config
+This repository is for tracking configuration files for personal GNU Guix systems. It is based on [[https://git.sr.ht/~abcdw/rde][rde]] configuraiton framework and by default depends on Emacs (+evil-collection) and Sway window manager along other Wayland applications.
+
+* Goals
+To achieve reproducible setup across local devices and personal remote infrastructure (email, website, git, etc.).
+
+The end goal is to have a consistent computing experience and a set of configuretion templates for local and remote hosts, and it is prefereable to have all config files written in Guile Scheme.
+
+The workflow implies having all Emacs buffers in new frames in order to utilize the window management capabilities of Sway instead of Emacs' internal window manager.
+
+* Systems
+
+** Hosts
+|---------+--------------------+---------+--------------------------------------------|
+|---------+--------------------+---------+--------------------------------------------|
+| Host    | Device             | Config  | Description                                |
+|---------+--------------------+---------+--------------------------------------------|
+| proto   | Xiaomi 13 laptop   | [[file:src/laszlo-configs/hosts/proto.scm][proto]]   | Old laptop for prototyping needs, runs rde |
+| dothome | Minisforum Mini PC | [[file:src/laszlo-configs/hosts/dothome.scm][dothome]] | Main machine for work at home, runs Guix   |
+| reform  | MNT Reform         | TBD     | Main laptop, runs Debian + Guix            |
+| lawork  | HP Envy x360       | TBD     | Previous main laptop, runs Manjaro + Guix  |
+|---------+--------------------+---------+--------------------------------------------|
+
+Currently, there is no reproducibility or consistency among the configuraitons of these hosts. The planned approach is:
+1. Have consistent configs based on rde for =proto= and =dothome= [x]
+2. Customize the configuration
+   - System-wide vim keys [x]
+   - Consistent colorscheme based on palenight [ ]
+   - Emacs as main client for:
+     - Mail (mu4e) [ ]
+     - Telegram (telega) [ ]
+     - Matrix (ement + pantalaimon) [ ]
+   - Find ways to apply:
+     - emacs-frame-only-mode [ ]
+     - SPC as leader key (Doom Emacs style keybdindings) [ ]
+     - UI based on packages made by Nicolas Rougier (NANO Emacs) [ ]
+3. Install the system on MNT Reform (requires custom u-boot and is aarch64) [ ]
+.4 Install the system on =lawork= [ ]
+
+
+** Remote hosts
+
+The list of remote hosts for laszlo.is domain. The desired setup includes:
+1. Email server [ ]
+2. Personal website [ ]
+3. Matrix and Pantalaimon [ ]
+4. File sync (currently Nextcloud, but can change to Syncthing) [ ]
+5. Wireguard VPN (Currently use [[https://github.com/IAmStoxe/wirehole][Wirehole]], could try same setup with Guix) [ ]
+
+

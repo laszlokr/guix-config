@@ -1,0 +1,240 @@
+TITLE: rde configuration notes
+
+* Configuring sway and waybar
+
+Sway configuration was straightforward for keybindings and the new commands were added to =sway-extra-config-service= in [[file:src/laszlo-configs/users/laszlo.scm][laszlo.scm]].
+
+The keybinds added:
+|---------------+---------------------------------|
+| Keys          | Action                          |
+|---------------+---------------------------------|
+| =Super+h=       | Focus Left                      |
+| =Super+j=       | Focus Down                      |
+| =Super+k=       | Focus Up                        |
+| =Super+l=       | Focus Right                     |
+| =Super+Ctrl+h=  | Move window Left                |
+| =Super+Ctrl+j=  | Move window Down                |
+| =Super+Ctrl+k=  | Move window Up                  |
+| =Super+Ctrl+l=  | Move window Right               |
+| =Super+Shift+o= | Change focus to workspace Left  |
+| =Super+Shift+p= | Change focus to workspace Right |
+| =Super+Ctrl+o=  | Move window to workspace Left   |
+| =Super+Ctrl+p=  | Move window to workspace Right  |
+| =Super+Ctrl+b=  | Vertical split                  |
+| =Super+Ctrl+h=  | Horizontal split                |
+| =Super+Ctrl+s=  | Stacking layout                 |
+| =Super+Ctrl+w=  | Tabbed layout                   |
+| =Super+Ctrl+y=  | Toggle split                    |
+| =Super+Ctrl+r=  | Resize mode                     |
+| =Super+SPC=     | Launcher                        |
+|--             |                                 |
+
+
+Things to improve:
+- Moving windows between workspaces can cause that the workspace becomes empty, and moving the window back will move to a closest workspace which has active windows.
+
+Desired solution:
+- Make workspaces persistent in waybar
+
+Possible ways to achieve:
+1. Add =#:extra-config= parameters to =feature-waybar= in =%laszlo-features= in [[file:src/laszlo-configs/users/laszlo.scm][laszlo.scm]]
+
+Looked at definition of =rde features wm= where =waybar-sway-workspaces= is defined and contains =persistent-workspaces= parameter.
+#+begin_src scheme
+(define* (waybar-sway-workspaces
+          #:key
+          (bar-id 'main)
+          (persistent-workspaces '())
+          (all-outputs? #f)
+          (format-icons '(("1" . )
+                          ("2" . )
+                          ("3" . )
+                          ("4" . )
+                          ("5" . )
+                          ("6" . )  ; 
+                          ("7" . )  ; 
+                          ("8" . )
+                          ("9" . )
+                          ("10" . )
+
+                          ("urgent" . )
+                          ("focused" . )
+                          ("default" . ))))
+  "PERSISTENT-WORKSPACES is a list of pairs workspace and vector of outputs."
+  (waybar-module
+   'sway/workspaces
+   `((disable-scroll . #t)
+     (format . {icon})
+     ;; FIXME: Height becomes higher when icons are not used.
+     (format-icons . ,format-icons)
+     (all-outputs . ,all-outputs?)
+     (persistent_workspaces . ,persistent-workspaces))
+   `(((#{#workspaces}# button)
+      ((background . none)
+       (border-radius . 0.2em)
+       (margin . (0.4em 0.2em))
+       (padding . (0.2em 0.2em))
+       (color . @base05)))
+
+     ((#{#workspaces}# button:hover)
+      ((background . none)
+       (border-color . @base07)))
+
+     ((#{#workspaces}# button.focused)
+      ((background . @base02)
+       (color . @base07)))
+
+     ((#{#workspaces}# button.urgent)
+      ((color . @base08))))
+   #:placement 'modules-left
+   #:bar-id bar-id))
+
+#+end_src
+
+How to define the persistent workspaces in =#:extra-config=
+
+Tried with:
+#+begin_src scheme
+(feature-waybar
+     #:extra-config
+     `(waybar-sway-workspaces
+       #:persistent-workspaces '(("1" . [])
+                                 ("2" . [])
+                                 ("3" . [])
+                                 ("4" . [])
+                                 ("5" . [])
+                                 ("6" . [])
+                                 ("7" . [])
+                                 ("8" . [])
+                                 ("9" . [])
+                                 ("10" . []))))
+
+#+end_src
+
+Home reconfigure gives error:
+#+begin_src sh
+> make dothome/home/reconfigure
+RDE_TARGET=dothome-home ./pre-inst-env target/profiles/guix/bin/guix home \
+reconfigure ./src/laszlo-configs/configs.scm
+guix home: error: failed to load './src/laszlo-configs/configs.scm':
+rde/features.scm:196:10: Wrong type (expecting exact integer): #<&message message: "Duplicate entry came from waybar feature:\n(waybar . #<package waybar@0.9.16 rde/packages/wm.scm:26 7f76c35ecdc0>)\n\nThe previous value was:\n(waybar . #<package waybar@0.9.16 rde/packages/wm.scm:26 7f76c35ecdc0>)\n">
+make: *** [Makefile:53: dothome/home/reconfigure] Error 1
+zsh: exit 2     make dothome/home/reconfigure
+
+#+end_src
+Seems like it's not the right way to do it.
+
+Adding a simpler setting
+#+begin_src scheme
+    (feature-waybar
+     #:height 20)
+#+end_src
+It produces the same error as above, will try to figure out the issue and try the second appoach.
+
+After adding waybar to list of features to be removed in order to overwrite settings, home environment was built sucessfully.
+#+begin_src scheme
+;; Here we basically remove all the features which has feature name equal
+   ;; to either 'base-services or 'kernel.
+   (remove (lambda (f) (member (feature-name f) '(base-services
+                                                  ssh
+						  kernel
+                                                  fonts
+                                                  waybar
+                                                  git)))
+           %all-features)
+#+end_src
+
+Now trying to add =#:persistent-workspaces= parameter to =waybar-sway-workspaces=
+
+#+begin_src scheme
+(waybar-sway-workspaces
+     #:persistent-workspaces
+     `((("1" . [])
+        ("2" . [])
+        ("3" . [])
+        ("4" . [])
+        ("5" . [])
+        ("6" . [])
+        ("7" . [])
+        ("8" . [])
+        ("9" . [])
+        ("10" . []))))
+#+end_src
+
+It causes the following error, but at least now getting closer to actually changing some =waybar-sway-workspaces= settings.
+#+begin_src sh
+> make dothome/home/reconfigure
+RDE_TARGET=dothome-home ./pre-inst-env target/profiles/guix/bin/guix home \
+reconfigure ./src/laszlo-configs/configs.scm
+guix home: error: failed to load './src/laszlo-configs/configs.scm':
+rde/features.scm:80:0: In procedure %feature-values-procedure:
+In procedure feature-values: Wrong type argument: #<<service> type: #<service-type waybar-module-sway/workspaces 7f45ba381040> value: #<<home-waybar-extension> config: #(((name . main) (modules-left . #(sway/workspaces)) (sway/workspaces (disable-scroll . #t) (format . #{\x7b;icon\x7d;}#) (format-icons ("1" . ) ("2" . ) ("3" . ) ("4" . ) ("5" . ) ("6" . ) ("7" . ) ("8" . ) ("9" . ) ("10" . ) ("urgent" . ) ("focused" . ) ("default" . )) (all-outputs . #f) (persistent_workspaces (("1") ("2") ("3") ("4") ("5") ("6") ("7") ("8") ("9") ("10")))))) style-css: (((#{#workspaces}# button) ((background . none) (border-radius . #{0.2em}#) (margin #{0.4em}# #{0.2em}#) (padding #{0.2em}# #{0.2em}#) (color . @base05))) ((#{#workspaces}# button:hover) ((background . none) (border-color . @base07))) ((#{#workspaces}# button.focused) ((background . @base02) (color . @base07))) ((#{#workspaces}# button.urgent) ((color . @base08)))) %location: #<<location> file: "rde/features/wm.scm" line: 540 column: 3>>>
+make: *** [Makefile:53: dothome/home/reconfigure] Error 1
+zsh: exit 2     make dothome/home/reconfigure
+
+
+#+end_src
+
+
+  "PERSISTENT-WORKSPACES is a list of pairs workspace and vector of outputs."
+
+For adding persistent workspace settings https://github.com/Alexays/Waybar/pull/330
+
+#+begin_src json
+"sway/workspaces": {
+    "persistant_workspaces": {
+        "3": [], // Always show a workspace with name '3', on all outputs if it does not exists
+        "4": ["eDP-1"], // Always show a workspace with name '4', on output 'eDP-1' if it does not exists
+        "5": ["eDP-1", "DP-2"] // Always show a workspace with name '5', on outputs 'eDP-1' and 'DP-2' if it does not exists
+    }
+}
+#+end_src
+
+2. Write a =waybar-extra-config-service= in [[file:src/laszlo-configs/users/laszlo.scm][laszlo.scm]]
+
+
+* Things to figure out
+Tweaking the UX/UI
+** Theming
+- How to set global theme settings (Emacs + Terminals + Bar, etc.)
+  - Global colorscheme set up and switching with Emacs menu or rofi/wofi   https://github.com/migalmoreno/guix-config/blob/72bd191989e0764d73f526efe88c309fa9a8b697/src/dotfiles/common.scm#L44
+    Currently, calling =C-c t t= toggles dark/light theme only in Emacs, and terminal windows do not change. Bar is grey, so it's not noticable.
+
+** Fonts
+- How to set up fonts and sizes
+  - Does it require writing a home service like emacs-extra-packages-service or similar
+  - Where should the feature-fonts be defined, and how to make sure it takes effect on all apps
+https://github.com/migalmoreno/guix-config/blob/72bd191989e0764d73f526efe88c309fa9a8b697/src/dotfiles/common.scm#L603
+
+** Keybindings
+- How to overwrite sway keybindings defined in rde/src/rde/features/wm.scm
+Example: =bindsym --to-code $mod+Shift+l exec $lock= prevents setting this key combination to =bindsym $mod+Shift+l move right= for moving containers around with vim keys instead of arrows.
+
+The same question applies to changing other settings which are defined in rde features. Does it require working on a local fork  of rde to tweak feature source code?
+
+** Emacs settings
+
+** How to extend services
+
+** How to extend features
+
+** Channels conflicting packages
+
+#+begin_src sh
+make -k dothome/home/build
+RDE_TARGET=dothome-home ./pre-inst-env target/profiles/guix/bin/guix home \
+build ./src/laszlo-configs/configs.scm
+guix home: error: profile contains conflicting entries for emacs-simple-httpd
+guix home: error:   first entry: emacs-simple-httpd@1.5.1 /gnu/store/4gfypn8r0r80z48dcyxi6b07rh32pvg8-emacs-simple-httpd-1.5.1
+guix home: error:    ... propagated from emacs-skewer-mode@1.8.0
+guix home: error:    ... propagated from emacs-aio@1.0
+guix home: error:    ... propagated from emacs-docker@2.2.0-0.cc0046e
+guix home: error:   second entry: emacs-simple-httpd@20230821.1458 /gnu/store/l2cy4c0z745pd4hhd1x22ga3p4g0glwj-emacs-simple-httpd-20230821.1458
+hint: Try upgrading both `emacs-docker' and `emacs-simple-httpd', or remove one of
+them from the profile.
+
+make: *** [Makefile:49: dothome/home/build] Error 1
+
+Compilation exited abnormally with code 2 at Wed Jul 10 08:37:51
+
+#+end_src
