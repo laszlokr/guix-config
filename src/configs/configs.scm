@@ -4,7 +4,7 @@
   #:use-module (srfi srfi-1)
   #:use-module (ice-9 match)
   #:use-module (configs hosts box)
-  #:use-module (configs hosts mintsystem)
+  ;; #:use-module (configs hosts mintsystem)
   #:use-module (configs users laszlokr))
 
 (define* (use-nested-configuration-modules
