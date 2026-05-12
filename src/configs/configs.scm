@@ -40,16 +40,16 @@
 
 (use-nested-configuration-modules)
 
-
+
 ;;; configs
 
+;; box — Minisforum HX90 mini PC, runs full Guix system
 (define-public box-config
   (rde-config
    (features
     (append
      %box-features
-     %laszlokr-features
-     ))))
+     %laszlokr-features))))
 
 (define-public box-os
   (rde-config-operating-system box-config))
@@ -57,12 +57,24 @@
 (define-public box-he
   (rde-config-home-environment box-config))
 
-
+;; mintsystem — HP laptop, home environment only
+(define-public mintsystem-config
+  (rde-config
+   (features
+    (append
+     %mintsystem-features
+     %laszlokr-features))))
+
+(define-public mintsystem-he
+  (rde-config-home-environment mintsystem-config))
+
+
 (define (dispatcher)
   (let ((rde-target (getenv "RDE_TARGET")))
     (match rde-target
       ("box-home" box-he)
       ("box-system" box-os)
+      ("mintsystem-home" mintsystem-he)
       (_ box-he))))
 
 (dispatcher)

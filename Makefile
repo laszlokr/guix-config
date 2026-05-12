@@ -45,6 +45,14 @@ box/system/reconfigure: guix
 	RDE_TARGET=box-system ${GUIX} system --substitute-urls='https://ci.guix.gnu.org https://bordeaux.guix.gnu.org https://substitutes.nonguix.org' \
 	reconfigure ${CONFIGS}
 
+mintsystem/home/build: guix
+	RDE_TARGET=mintsystem-home ${GUIX} home \
+	build ${CONFIGS}
+
+mintsystem/home/reconfigure: guix
+	RDE_TARGET=mintsystem-home ${GUIX} home \
+	reconfigure ${CONFIGS}
+
 cow-store:
 	sudo herd start cow-store ${ROOT_MOUNT_POINT}
 

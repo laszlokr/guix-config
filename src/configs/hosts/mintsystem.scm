@@ -1,6 +1,5 @@
-(define-module (configs hosts box)
+(define-module (configs hosts mintsystem)
   #:use-module (gnu services)
-  #:use-module (gnu services base)
   #:use-module (gnu services ssh)
   #:use-module (gnu system file-systems)
   #:use-module (gnu system mapped-devices)
@@ -9,54 +8,53 @@
   #:use-module (rde features system)
   #:use-module (rde features wm))
 
-
+
 ;;; Host-specific features and services
 
-;; Define the mapped device for encrypted root
-(define box-mapped-devices
+;; TODO: Fill in UUID from `sudo blkid` for the encrypted root device
+(define mintsystem-mapped-devices
   (list
    (mapped-device
-    (source (uuid "a018554d-cbc6-41cd-9457-112656cd5b60"))
+    (source (uuid "TODO-fill-in-luks-uuid"))
     (target "cryptroot")
     (type luks-device-mapping))))
 
-;; Define file systems, including the encrypted root
-(define box-file-systems
+;; TODO: Fill in EFI partition UUID from `sudo blkid`
+(define mintsystem-file-systems
   (list
    (file-system
     (mount-point "/boot/efi")
-    (device (uuid "EBAA-2487" 'fat32))
+    (device (uuid "TODO-fill-in-efi-uuid" 'fat32))
     (type "vfat"))
    (file-system
     (mount-point "/")
     (device "/dev/mapper/cryptroot")
     (type "ext4")
-    (dependencies box-mapped-devices))))
+    (dependencies mintsystem-mapped-devices))))
 
-;; Custom system services for `box`
-(define box-custom-services
+(define mintsystem-custom-services
   (list
    (service openssh-service-type
             (openssh-configuration
              (password-authentication? #f)
              (permit-root-login 'prohibit-password)))))
 
-
+
 ;;; Host-specific features
 
-(define-public %box-features
+(define-public %mintsystem-features
   (list
    (feature-host-info
-    #:host-name "box"
+    #:host-name "mintsystem"
     #:timezone "Europe/Zurich")
    (feature-file-systems
-    #:file-systems box-file-systems
-    #:mapped-devices box-mapped-devices)
+    #:file-systems mintsystem-file-systems
+    #:mapped-devices mintsystem-mapped-devices)
    (feature-custom-services
-    #:system-services box-custom-services)
-   ;; Mini PC — configure external monitor profiles as needed
+    #:system-services mintsystem-custom-services)
    (feature-kanshi
     #:extra-config
-    `((profile single ((output HDMI-A-1 enable)))
-      (profile dual ((output HDMI-A-1 enable)
-                     (output HDMI-A-2 enable)))))))
+    `((profile laptop ((output eDP-1 enable)))
+      (profile docked ((output eDP-1 enable)
+                       (output DP-1 enable)))))
+   (feature-hidpi)))
