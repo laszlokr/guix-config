@@ -1,0 +1,27 @@
+# Guix build artefacts
+target/
+*.go
+*.log
+
+# Secrets — never commit
+docker/.env
+docker/**/.env
+*.secret
+
+# Docker volume data
+docker/**/volumes/
+
+# OCA/Odoo addon repos cloned into the addons mount directory
+docker/odoo/addons/*/
+!docker/odoo/addons/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor
+.dir-locals-2.el
+*~
+\#*\#

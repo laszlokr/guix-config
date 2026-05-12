@@ -1,0 +1,58 @@
+services:
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    # CPU-only mode — no GPU flags.
+    # To pull a model after first start: docker exec -it ai-ollama-1 ollama pull llama3.2
+    volumes:
+      - /data/docker/ai/ollama:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    depends_on:
+      - ollama
+    ports:
+      - "127.0.0.1:3000:8080"
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      WEBUI_SECRET_KEY: ""
+    volumes:
+      - /data/docker/ai/open-webui:/app/backend/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
+    volumes:
+      - /data/docker/ai/qdrant:/qdrant/storage
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
