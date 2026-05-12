@@ -2,14 +2,16 @@
   #:use-module (rde features)
   #:use-module (gnu services)
   #:use-module (srfi srfi-1)
-  #:use-module (ice-9 match))
+  #:use-module (ice-9 match)
+  #:use-module (configs hosts box)
+  #:use-module (configs hosts mintsystem)
+  #:use-module (configs users laszlokr))
 
 (define* (use-nested-configuration-modules
           #:key
           (users-subdirectory "/users")
           (hosts-subdirectory "/hosts"))
   (use-modules (guix discovery)
-               (configs users laszlokr)
                (guix modules))
 
   (define current-module-file
