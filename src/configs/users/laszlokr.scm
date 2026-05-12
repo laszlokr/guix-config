@@ -130,7 +130,7 @@
      "haunt" "emacs-ox-haunt"
 
      ;; browsers
-     "firefox" "nyxt"
+     "firefox"
      "icedove"
 
      ;; office
@@ -308,8 +308,6 @@ G9.lc/f.U9QxNW1.2MZdV1KzW6uMJ0t23KKoN/"
     (feature-gnupg
      #:gpg-primary-key "D36160BF5AC4A0042A135EFE3EED170AF050DEB7"
      #:gpg-ssh-agent? #f)
-
-    (feature-nyxt)
 
     (feature-waybar
      #:transitions? #t
