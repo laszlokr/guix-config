@@ -16,18 +16,27 @@
   (url "https://git.sr.ht/~abcdw/rde")
   (introduction
    (make-channel-introduction
-    "580acbca3e8b6165cdbbb2543b9ce5516b79c5d2"
+    "b89e78b863c214b74751352e0e659a5e1d6c955d"
     (openpgp-fingerprint
      "2841 9AC6 5038 7440 C7E9  2FFA 2208 D209 58C1 DEB0"))))
+ ;; (channel
+ ;;  (name 'small-guix)
+ ;;  (url "https://codeberg.org/fishinthecalculator/small-guix")
+ ;;  (branch "master")
+ ;;  (introduction
+ ;;    (make-channel-introduction
+ ;;      "f260da13666cd41ae3202270784e61e062a3999c"
+ ;;      (openpgp-fingerprint
+ ;;        "8D10 60B9 6BB8 292E 829B  7249 AED4 1CC1 93B7 01E2"))))
  (channel
-  (name 'small-guix)
-  (url "https://codeberg.org/fishinthecalculator/small-guix")
-  (branch "master")
+  (name 'rosenthal)
+  (url "https://github.com/rakino/rosenthal")
+  (branch "trunk")
   (introduction
-    (make-channel-introduction
-      "f260da13666cd41ae3202270784e61e062a3999c"
-      (openpgp-fingerprint
-        "8D10 60B9 6BB8 292E 829B  7249 AED4 1CC1 93B7 01E2"))))
+   (make-channel-introduction
+    "7677db76330121a901604dfbad19077893865f35"
+    (openpgp-fingerprint
+     "13E7 6CD6 E649 C28C 3385  4DF5 5E5A A665 6149 17F7"))))
  ;; (channel
  ;;  (name 'repkgd)
  ;;  (url "https://git.sr.ht/~laszlo/repkgd")

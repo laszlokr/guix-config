@@ -38,7 +38,7 @@
   #:use-module (rde home services shells)
   #:use-module (rde home services video)
   #:use-module (rde packages)
-  #:use-module (small-guix packages compose)
+  ;; #:use-module (small-guix packages compose)
   ;; #:use-module (private packages emacs)
   #:use-module (srfi srfi-1))
 
@@ -123,7 +123,7 @@
 
      ;; virt
      "libvirt" "virt-manager"
-     "docker-compose"
+     ;; "docker-compose"
 
      ;; guile
      "guile-next" "guile-ares-rs" "emacs-arei"
