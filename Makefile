@@ -42,7 +42,9 @@ box/system/build: guix
 	build ${CONFIGS}
 
 box/system/reconfigure: guix
-	RDE_TARGET=box-system ${GUIX} system --substitute-urls='https://ci.guix.gnu.org https://bordeaux.guix.gnu.org https://substitutes.nonguix.org' \
+	RDE_TARGET=box-system ${GUIX} system \
+	--substitute-urls='https://bordeaux.guix.gnu.org https://substitutes.nonguix.org' \
+	--fallback \
 	reconfigure ${CONFIGS}
 
 mintsystem/home/build: guix
