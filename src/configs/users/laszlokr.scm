@@ -6,6 +6,7 @@
   #:use-module (gnu home-services ssh)
   #:use-module (gnu packages)
   #:use-module (gnu services)
+  #:use-module (gnu services base)
   #:use-module (gnu services virtualization)
   #:use-module (guix channels)
   #:use-module (guix download)
@@ -47,6 +48,8 @@
 
 
 ;;; Service extensions
+
+(define nonguix-pub (local-file "../../../files/keys/nonguix-key.pub"))
 
 (define emacs-extra-packages-service
   (simple-service
@@ -220,6 +223,15 @@
 (define (feature-additional-services)
   (feature-custom-services
    #:feature-name-prefix 'laszlokr
+   #:system-services
+   (list
+    (simple-service 'nonguix-substitutes
+                    guix-service-type
+                    (guix-extension
+                     (authorized-keys (list nonguix-pub))
+                     (substitute-urls (list "https://bordeaux.guix.gnu.org"
+                                            "https://ci.guix.gnu.org"
+                                            "https://substitutes.nonguix.org")))))
    #:home-services
    (list
     emacs-extra-packages-service
@@ -247,20 +259,13 @@
    virtualization-features
    general-features))
 
-(define nonguix-pub (local-file "../../../files/keys/nonguix-key.pub"))
-
 (define all-features-with-custom-kernel-and-substitutes
   (append
-   ;; "C-h S" (info-lookup-symbol), "C-c C-d C-i" (geiser-doc-look-up-manual)
-   ;; to see the info manual for a particular function.
-
-   ;; Here we basically remove all the features which has feature name equal
-   ;; to either 'base-services or 'kernel.
    (remove (lambda (f) (member (feature-name f) '(base-services
                                                   xdg
                                                   ssh
                                                   gnupg
-						  kernel
+                                                  kernel
                                                   docker
                                                   irc
                                                   fonts
@@ -275,11 +280,7 @@
     (feature-kernel
      #:kernel (@ (nongnu packages linux) linux)
      #:firmware (list (@ (nongnu packages linux) linux-firmware)))
-    (feature-base-services
-     #:guix-authorized-keys (list nonguix-pub)
-     #:default-substitute-urls (list "https://bordeaux.guix.gnu.org"
-                                     "https://ci.guix.gnu.org"
-                                     "https://substitutes.nonguix.org")))))
+    (feature-base-services))))
 
 (define-public %laszlokr-features
   (append
