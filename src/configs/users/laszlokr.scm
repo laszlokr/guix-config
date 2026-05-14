@@ -19,7 +19,7 @@
   #:use-module (rde features gnupg)
   #:use-module (rde features keyboard)
   #:use-module (rde features networking)
-  #:use-module (rde features docker)
+  ;; #:use-module (rde features docker)  ;; removed: using podman instead
   #:use-module (rde features system)
   #:use-module (rde features xdg)
   #:use-module (rde features irc)
@@ -126,7 +126,9 @@
 
      ;; virt
      "libvirt" "virt-manager"
-     ;; "docker-compose"
+
+     ;; containers
+     "podman" "podman-compose"
 
      ;; guile
      "guile-next" "guile-ares-rs" "emacs-arei"
@@ -369,8 +371,6 @@ G9.lc/f.U9QxNW1.2MZdV1KzW6uMJ0t23KKoN/"
      #:org-agenda-files '("~/work/laszlo/todo.org"))
     (feature-emacs-elfeed
      #:elfeed-org-files '("~/work/laszlo/private/rss.org"))
-    (feature-docker)
-
     (feature-irc-settings
      #:irc-accounts (list
                      (irc-account
