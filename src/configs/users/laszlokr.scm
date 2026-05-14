@@ -19,7 +19,7 @@
   #:use-module (rde features gnupg)
   #:use-module (rde features keyboard)
   #:use-module (rde features networking)
-  ;; #:use-module (rde features docker)  ;; removed: using podman instead
+  #:use-module (rde features podman)
   #:use-module (rde features system)
   #:use-module (rde features xdg)
   #:use-module (rde features irc)
@@ -126,9 +126,6 @@
 
      ;; virt
      "libvirt" "virt-manager"
-
-     ;; containers
-     "podman" "podman-compose"
 
      ;; guile
      "guile-next" "guile-ares-rs" "emacs-arei"
@@ -238,7 +235,15 @@
    (list
     emacs-extra-packages-service
     home-extra-packages-service
-    sway-extra-config-service)))
+    sway-extra-config-service
+    ;; feature-podman hardcodes btrfs storage driver but box runs ext4.
+    ;; Override storage.conf to use overlay which works on any filesystem.
+    (simple-service 'podman-storage-overlay
+                    home-xdg-configuration-files-service-type
+                    `(("containers/storage.conf"
+                       ,(plain-file
+                         "storage.conf"
+                         "[storage]\ndriver = \"overlay\"\n")))))))
 
 ;;; User-specific features with personal preferences
 
@@ -371,6 +376,8 @@ G9.lc/f.U9QxNW1.2MZdV1KzW6uMJ0t23KKoN/"
      #:org-agenda-files '("~/work/laszlo/todo.org"))
     (feature-emacs-elfeed
      #:elfeed-org-files '("~/work/laszlo/private/rss.org"))
+    (feature-podman)
+
     (feature-irc-settings
      #:irc-accounts (list
                      (irc-account
