@@ -45,7 +45,18 @@ box/system/reconfigure: guix
 	RDE_TARGET=box-system ${GUIX} system \
 	--substitute-urls='https://bordeaux.guix.gnu.org https://substitutes.nonguix.org' \
 	--fallback \
+	--no-bootloader \
 	reconfigure ${CONFIGS}
+
+# Run this once after manual grub-install recovery, or after kernel changes.
+# Requires: cryptsetup open /dev/nvme0n1p2 cryptroot (already done at runtime)
+box/system/install-bootloader: guix
+	$(find /gnu/store -name "grub-install" | grep "2\.12" | grep sbin | head -1) \
+	--target=x86_64-efi \
+	--efi-directory=/boot/efi \
+	--bootloader-id=Guix \
+	--modules="cryptodisk luks2 gcry_rijndael gcry_sha256 ext2 part_gpt" \
+	/dev/nvme0n1
 
 mintsystem/home/build: guix
 	RDE_TARGET=mintsystem-home ${GUIX} home \
