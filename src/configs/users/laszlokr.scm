@@ -299,7 +299,7 @@
      #:full-name "Laszlo Krajnikovszkij"
      #:email "laszlo@laszlo.is"
      #:user-groups
-     '("wheel" "netdev" "audio" "video" "libvirt" "docker")
+     '("wheel" "netdev" "audio" "video" "libvirt")
      #:user-initial-password-hash
      "$6$abc$9a9KlQ2jHee45D./UOzUZWLHjI/atvz2Dp6.Zz6hjRcP2KJv\
 G9.lc/f.U9QxNW1.2MZdV1KzW6uMJ0t23KKoN/"
