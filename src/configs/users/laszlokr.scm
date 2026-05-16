@@ -229,7 +229,6 @@
                     (guix-extension
                      (authorized-keys (list nonguix-pub))
                      (substitute-urls (list "https://bordeaux.guix.gnu.org"
-                                            "https://ci.guix.gnu.org"
                                             "https://substitutes.nonguix.org")))))
    #:home-services
    (list
