@@ -377,6 +377,7 @@ G9.lc/f.U9QxNW1.2MZdV1KzW6uMJ0t23KKoN/"
     (feature-emacs-elfeed
      #:elfeed-org-files '("~/work/laszlo/private/rss.org"))
     (feature-podman)
+    (feature-distrobox)
 
     (feature-irc-settings
      #:irc-accounts (list
