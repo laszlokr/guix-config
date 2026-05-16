@@ -19,7 +19,7 @@
   #:use-module (rde features gnupg)
   #:use-module (rde features keyboard)
   #:use-module (rde features networking)
-  #:use-module (rde features podman)
+  ;; #:use-module (rde features podman)  ;; TODO: verify correct module path
   #:use-module (rde features system)
   #:use-module (rde features xdg)
   #:use-module (rde features irc)
@@ -376,7 +376,7 @@ G9.lc/f.U9QxNW1.2MZdV1KzW6uMJ0t23KKoN/"
      #:org-agenda-files '("~/work/laszlo/todo.org"))
     (feature-emacs-elfeed
      #:elfeed-org-files '("~/work/laszlo/private/rss.org"))
-    (feature-podman)
+    ;; (feature-podman)  ;; TODO: re-enable once module path is confirmed
 
     (feature-irc-settings
      #:irc-accounts (list
