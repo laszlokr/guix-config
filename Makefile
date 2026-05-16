@@ -25,25 +25,30 @@ ROOT_MOUNT_POINT=/mnt
 
 VERSION=latest
 
+SUBSTITUTE_URLS=--substitute-urls='https://bordeaux.guix.gnu.org https://substitutes.nonguix.org'
+
 repl:
 	${GUIX} repl -L ../tests \
 	-L ../files/emacs/gider/src --listen=tcp:37146
 
 box/home/build: guix
 	RDE_TARGET=box-home ${GUIX} home \
+	${SUBSTITUTE_URLS} \
 	build ${CONFIGS}
 
 box/home/reconfigure: guix
 	RDE_TARGET=box-home ${GUIX} home \
+	${SUBSTITUTE_URLS} \
 	reconfigure ${CONFIGS}
 
 box/system/build: guix
 	RDE_TARGET=box-system ${GUIX} system \
+	${SUBSTITUTE_URLS} \
 	build ${CONFIGS}
 
 box/system/reconfigure: guix
 	RDE_TARGET=box-system ${GUIX} system \
-	--substitute-urls='https://bordeaux.guix.gnu.org https://substitutes.nonguix.org' \
+	${SUBSTITUTE_URLS} \
 	--fallback \
 	--no-bootloader \
 	reconfigure ${CONFIGS}
