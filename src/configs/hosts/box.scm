@@ -1,4 +1,5 @@
 (define-module (configs hosts box)
+  #:use-module (gnu packages containers)
   #:use-module (gnu services)
   #:use-module (gnu services shepherd)
   #:use-module (gnu services ssh)
@@ -33,47 +34,47 @@
     (dependencies box-mapped-devices))))
 
 
-;;; Docker Compose Shepherd feature
+;;; Podman Compose Shepherd feature
 ;;
-;; Starts each Docker Compose stack at boot via Shepherd.  Credentials
-;; are read from the .env file next to the compose files.  dockerd is
-;; provided by feature-docker in laszlokr.scm.
+;; Starts each Podman Compose stack at boot via Shepherd.  Credentials
+;; are read from the .env file next to the compose files.
 
-(define %docker-dir "/home/laszlokr/guix-config/docker")
+(define %compose-dir "/home/laszlokr/guix-config/docker")
 
-(define (feature-box-docker-compose)
-  (define (make-docker-compose-service name)
-    (let ((project-dir (string-append %docker-dir "/" name))
-          (env-file    (string-append %docker-dir "/.env")))
+(define (feature-box-podman-compose)
+  (define (make-podman-compose-service name)
+    (let ((compose-file (string-append %compose-dir "/" name "/compose.yml"))
+          (env-file     (string-append %compose-dir "/.env")))
       (shepherd-service
-       (provision (list (string->symbol (string-append "docker-" name))))
-       (requirement '(dockerd networking))
-       (documentation (string-append "Docker Compose stack: " name))
+       (provision (list (string->symbol (string-append "podman-" name))))
+       (requirement '(networking))
+       (documentation (string-append "Podman Compose stack: " name))
        (respawn? #f)
        (start #~(lambda _
-                  (zero? (system* "/run/current-system/profile/bin/docker"
-                                  "compose"
-                                  "--project-directory" #$project-dir
-                                  "--env-file" #$env-file
-                                  "up" "--detach" "--wait"))))
+                  (zero? (system*
+                          #$(file-append podman-compose "/bin/podman-compose")
+                          "-f" #$compose-file
+                          "--env-file" #$env-file
+                          "up" "-d"))))
        (stop #~(lambda _
-                 (system* "/run/current-system/profile/bin/docker"
-                          "compose"
-                          "--project-directory" #$project-dir
-                          "down")
+                 (system*
+                  #$(file-append podman-compose "/bin/podman-compose")
+                  "-f" #$compose-file
+                  "--env-file" #$env-file
+                  "down")
                  #f)))))
 
-  (define (docker-compose-system-services config)
+  (define (podman-compose-system-services config)
     (list
-     (simple-service 'docker-compose-stacks
+     (simple-service 'podman-compose-stacks
                      shepherd-root-service-type
-                     (map make-docker-compose-service
+                     (map make-podman-compose-service
                           (list "odoo" "nextcloud" "ai" "automation" "search")))))
 
   (feature
-   (name 'box-docker-compose)
-   (values '((box-docker-compose . #t)))
-   (system-services-getter docker-compose-system-services)))
+   (name 'box-podman-compose)
+   (values '((box-podman-compose . #t)))
+   (system-services-getter podman-compose-system-services)))
 
 
 ;;; Host-specific features
@@ -93,7 +94,7 @@
               (openssh-configuration
                (password-authentication? #f)
                (permit-root-login 'prohibit-password)))))
-   (feature-box-docker-compose)
+   (feature-box-podman-compose)
    (feature-kanshi
     #:extra-config
     `((profile single ((output HDMI-A-1 enable)))
