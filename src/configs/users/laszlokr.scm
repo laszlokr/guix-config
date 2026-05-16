@@ -235,15 +235,7 @@
    (list
     emacs-extra-packages-service
     home-extra-packages-service
-    sway-extra-config-service
-    ;; feature-podman hardcodes btrfs storage driver but box runs ext4.
-    ;; Override storage.conf to use overlay which works on any filesystem.
-    (simple-service 'podman-storage-overlay
-                    home-xdg-configuration-files-service-type
-                    `(("containers/storage.conf"
-                       ,(plain-file
-                         "storage.conf"
-                         "[storage]\ndriver = \"overlay\"\n")))))))
+    sway-extra-config-service)))
 
 ;;; User-specific features with personal preferences
 
