@@ -128,7 +128,7 @@
      "libvirt" "virt-manager"
 
      ;; guile
-     "guile-next" "emacs-arei"
+     "guile-next"
      "haunt" "emacs-ox-haunt"
 
      ;; browsers
