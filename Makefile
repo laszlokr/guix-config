@@ -27,6 +27,14 @@ VERSION=latest
 
 SUBSTITUTE_URLS=--substitute-urls='https://bordeaux.guix.gnu.org https://substitutes.nonguix.org'
 
+# emacs-feature-loader can't be built from source because feature-loader.el
+# calls (feature-loader) at top level, which pulls in rde runtime Emacs code
+# (rde-fonts → fontaine → modus-themes) that fails in headless batch Emacs
+# during validate-compiled-autoloads.  The patched version replaces that phase
+# with a no-op and normalises the install paths to match the original.
+# See src/packages/overrides.scm for the package definition.
+GRAFT_FLAGS=--with-graft=emacs-feature-loader=emacs-feature-loader-patched
+
 repl:
 	${GUIX} repl -L ../tests \
 	-L ../files/emacs/gider/src --listen=tcp:37146
@@ -34,12 +42,14 @@ repl:
 box/home/build: guix
 	RDE_TARGET=box-home ${GUIX} home \
 	${SUBSTITUTE_URLS} \
+	${GRAFT_FLAGS} \
 	--fallback \
 	build ${CONFIGS}
 
 box/home/reconfigure: guix
 	RDE_TARGET=box-home ${GUIX} home \
 	${SUBSTITUTE_URLS} \
+	${GRAFT_FLAGS} \
 	--fallback \
 	reconfigure ${CONFIGS}
 
