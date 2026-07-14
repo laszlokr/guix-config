@@ -13,25 +13,44 @@
 ;;; Fix: replace validate-compiled-autoloads with a no-op, keep everything
 ;;; else (name, version, install paths) identical to the original.
 ;;;
-;;; Applied via module-define! so the patch is in effect before any rde
-;;; feature evaluates (@ (rde packages emacs) emacs-feature-loader).
+;;; Applied via variable-set! (NOT module-define!) so that compiled bytecode
+;;; in rde modules that holds a pointer to the existing variable object sees
+;;; the updated value.  module-define! creates a new variable object, leaving
+;;; existing pointers in compiled code pointing to the old value.
+
+(define %orig (@ (rde packages emacs) emacs-feature-loader))
 
 (define %patched-feature-loader
-  (package/inherit (@ (rde packages emacs) emacs-feature-loader)
+  (package/inherit %orig
     (arguments
-     (substitute-keyword-arguments
-       (package-arguments (@ (rde packages emacs) emacs-feature-loader))
+     (substitute-keyword-arguments (package-arguments %orig)
        ((#:phases phases #~%standard-phases)
         #~(modify-phases #$phases
             (replace 'validate-compiled-autoloads
               (lambda _
-                ;; feature-loader.el calls (feature-loader) unconditionally
-                ;; at load time, pulling in rde runtime code that fails in
-                ;; batch/headless Emacs.  Skip validation; the compiled
-                ;; autoloads are correct — only the self-check is broken.
+                ;; feature-loader.el calls (feature-loader) at top level,
+                ;; pulling in rde runtime code that crashes in headless
+                ;; batch Emacs.  The compiled autoloads are correct —
+                ;; only the self-check is broken.
                 #t))))))))
 
-(module-define!
- (resolve-module '(rde packages emacs))
- 'emacs-feature-loader
- %patched-feature-loader)
+;;; Patch both the module's internal obarray and its public interface.
+;;; variable-set! mutates the existing variable object in-place so all
+;;; existing references (including those in already-loaded compiled modules)
+;;; see the new value.
+(let* ((m   (resolve-module '(rde packages emacs)))
+       (pub (module-public-interface m)))
+  (for-each
+   (lambda (mod)
+     (when mod
+       (let ((v (module-variable mod 'emacs-feature-loader)))
+         (if v
+             (begin
+               (format (current-error-port)
+                       "[configs/patches] patching emacs-feature-loader in ~a~%"
+                       (module-name mod))
+               (variable-set! v %patched-feature-loader))
+             (format (current-error-port)
+                     "[configs/patches] WARNING: emacs-feature-loader not found in ~a~%"
+                     (module-name mod))))))
+   (list m pub)))

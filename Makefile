@@ -37,13 +37,13 @@ repl:
 	-L ../files/emacs/gider/src --listen=tcp:37146
 
 box/home/build: guix
-	RDE_TARGET=box-home ${GUIX} home \
+	GUILE_AUTO_COMPILE=0 RDE_TARGET=box-home ${GUIX} home \
 	${HOME_SUBSTITUTE_URLS} \
 	--fallback \
 	build ${CONFIGS}
 
 box/home/reconfigure: guix
-	RDE_TARGET=box-home ${GUIX} home \
+	GUILE_AUTO_COMPILE=0 RDE_TARGET=box-home ${GUIX} home \
 	${HOME_SUBSTITUTE_URLS} \
 	--fallback \
 	reconfigure ${CONFIGS}
