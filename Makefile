@@ -18,6 +18,9 @@ GUIX=./pre-inst-env ${GUIX_PROFILE}/bin/guix
 
 SRC_DIR=./src
 CONFIGS=${SRC_DIR}/configs/configs.scm
+# Pass SRC_DIR as an explicit Guix load-path so (configs ...) modules are
+# always found, even if Guix internally changes its working directory.
+LOAD_PATH_FLAGS=-L $(CURDIR)/src
 PULL_EXTRA_OPTIONS=
 # --allow-downgrades
 
@@ -39,23 +42,27 @@ repl:
 box/home/build: guix
 	GUILE_AUTO_COMPILE=0 RDE_TARGET=box-home ${GUIX} home \
 	${HOME_SUBSTITUTE_URLS} \
+	${LOAD_PATH_FLAGS} \
 	--fallback \
 	build ${CONFIGS}
 
 box/home/reconfigure: guix
 	GUILE_AUTO_COMPILE=0 RDE_TARGET=box-home ${GUIX} home \
 	${HOME_SUBSTITUTE_URLS} \
+	${LOAD_PATH_FLAGS} \
 	--fallback \
 	reconfigure ${CONFIGS}
 
 box/system/build: guix
 	RDE_TARGET=box-system ${GUIX} system \
 	${SYSTEM_SUBSTITUTE_URLS} \
+	${LOAD_PATH_FLAGS} \
 	build ${CONFIGS}
 
 box/system/reconfigure: guix
 	RDE_TARGET=box-system ${GUIX} system \
 	${SYSTEM_SUBSTITUTE_URLS} \
+	${LOAD_PATH_FLAGS} \
 	--fallback \
 	--no-bootloader \
 	reconfigure ${CONFIGS}
@@ -71,11 +78,17 @@ box/system/install-bootloader: guix
 	/dev/nvme0n1
 
 mintsystem/home/build: guix
-	RDE_TARGET=mintsystem-home ${GUIX} home \
+	GUILE_AUTO_COMPILE=0 RDE_TARGET=mintsystem-home ${GUIX} home \
+	${HOME_SUBSTITUTE_URLS} \
+	${LOAD_PATH_FLAGS} \
+	--fallback \
 	build ${CONFIGS}
 
 mintsystem/home/reconfigure: guix
-	RDE_TARGET=mintsystem-home ${GUIX} home \
+	GUILE_AUTO_COMPILE=0 RDE_TARGET=mintsystem-home ${GUIX} home \
+	${HOME_SUBSTITUTE_URLS} \
+	${LOAD_PATH_FLAGS} \
+	--fallback \
 	reconfigure ${CONFIGS}
 
 cow-store:
