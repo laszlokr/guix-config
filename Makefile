@@ -25,8 +25,12 @@ ROOT_MOUNT_POINT=/mnt
 
 VERSION=latest
 
-SUBSTITUTE_URLS=--substitute-urls='https://bordeaux.guix.gnu.org https://substitutes.nonguix.org'
+# Home environments: only standard Guix packages → bordeaux is sufficient.
+# nonguix is not needed (the non-free kernel/firmware are system packages).
+HOME_SUBSTITUTE_URLS=--substitute-urls='https://bordeaux.guix.gnu.org'
 
+# System builds: need nonguix for the non-free Linux kernel and firmware.
+SYSTEM_SUBSTITUTE_URLS=--substitute-urls='https://bordeaux.guix.gnu.org https://substitutes.nonguix.org'
 
 repl:
 	${GUIX} repl -L ../tests \
@@ -34,24 +38,24 @@ repl:
 
 box/home/build: guix
 	RDE_TARGET=box-home ${GUIX} home \
-	${SUBSTITUTE_URLS} \
+	${HOME_SUBSTITUTE_URLS} \
 	--fallback \
 	build ${CONFIGS}
 
 box/home/reconfigure: guix
 	RDE_TARGET=box-home ${GUIX} home \
-	${SUBSTITUTE_URLS} \
+	${HOME_SUBSTITUTE_URLS} \
 	--fallback \
 	reconfigure ${CONFIGS}
 
 box/system/build: guix
 	RDE_TARGET=box-system ${GUIX} system \
-	${SUBSTITUTE_URLS} \
+	${SYSTEM_SUBSTITUTE_URLS} \
 	build ${CONFIGS}
 
 box/system/reconfigure: guix
 	RDE_TARGET=box-system ${GUIX} system \
-	${SUBSTITUTE_URLS} \
+	${SYSTEM_SUBSTITUTE_URLS} \
 	--fallback \
 	--no-bootloader \
 	reconfigure ${CONFIGS}
