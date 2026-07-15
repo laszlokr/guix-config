@@ -34,11 +34,13 @@ repl:
 box/home/build: guix
 	RDE_TARGET=box-home ${GUIX} home \
 	${SUBSTITUTE_URLS} \
+	--fallback \
 	build ${CONFIGS}
 
 box/home/reconfigure: guix
 	RDE_TARGET=box-home ${GUIX} home \
 	${SUBSTITUTE_URLS} \
+	--fallback \
 	reconfigure ${CONFIGS}
 
 box/system/build: guix
