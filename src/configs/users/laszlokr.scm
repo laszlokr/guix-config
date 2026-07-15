@@ -144,7 +144,6 @@
      "keepassxc" "nextcloud-client"
      "gthumb"
      "kicad" "openscad"
-     "steam"
 
      ;;themes
      "hicolor-icon-theme" "adwaita-icon-theme" "gnome-themes-extra"
