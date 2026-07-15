@@ -28,15 +28,15 @@
  ;;      "f260da13666cd41ae3202270784e61e062a3999c"
  ;;      (openpgp-fingerprint
  ;;        "8D10 60B9 6BB8 292E 829B  7249 AED4 1CC1 93B7 01E2"))))
- (channel
-  (name 'rosenthal)
-  (url "https://github.com/rakino/rosenthal")
-  (branch "trunk")
-  (introduction
-   (make-channel-introduction
-    "7677db76330121a901604dfbad19077893865f35"
-    (openpgp-fingerprint
-     "13E7 6CD6 E649 C28C 3385  4DF5 5E5A A665 6149 17F7"))))
+ ;; (channel
+ ;;  (name 'rosenthal)
+ ;;  (url "https://github.com/rakino/rosenthal")
+ ;;  (branch "trunk")
+ ;;  (introduction
+ ;;   (make-channel-introduction
+ ;;    "7677db76330121a901604dfbad19077893865f35"
+ ;;    (openpgp-fingerprint
+ ;;     "13E7 6CD6 E649 C28C 3385  4DF5 5E5A A665 6149 17F7"))))
  ;; (channel
  ;;  (name 'repkgd)
  ;;  (url "https://git.sr.ht/~laszlo/repkgd")

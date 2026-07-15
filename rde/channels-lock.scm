@@ -2,9 +2,9 @@
 
 (list (channel
        (name 'guix)
-       (url "https://git.savannah.gnu.org/git/guix.git")
+       (url "https://git.guix.gnu.org/guix.git")
        (branch "master")
-       (commit "68495de32c232af16321e36a56590c578d4eb629")
+       (commit "8db8515a6780b5a70bd7bd7f174558d86dec14d3")
        (introduction
         (make-channel-introduction
          "9edb3f66fd807b096b48283debdcddccfea34bad"
@@ -14,7 +14,7 @@
        (name 'nonguix)
        (url "https://gitlab.com/nonguix/nonguix")
        (branch "master")
-       (commit "5f2630e69fbbe9e79c350a67545f0fef7e93e223")
+       (commit "3b66965566fe8c96edb5a41fd39a9e5a90ad9b61")
        (introduction
         (make-channel-introduction
          "897c1a470da759236cc11798f4e0a5f7d4d59fbc"
@@ -24,19 +24,9 @@
        (name 'rde)
        (url "https://git.sr.ht/~abcdw/rde")
        (branch "master")
-       (commit "458b82e128bd98a19e995e72377161f2cfd964a9")
+       (commit "70a1881f09c939792eb2ed932dded1f16291a59f")
        (introduction
         (make-channel-introduction
          "b89e78b863c214b74751352e0e659a5e1d6c955d"
          (openpgp-fingerprint
-          "2841 9AC6 5038 7440 C7E9  2FFA 2208 D209 58C1 DEB0"))))
-      (channel
-       (name 'rosenthal)
-       (url "https://github.com/rakino/rosenthal")
-       (branch "trunk")
-       (commit "9e60a11917cbdca57e10c51e174dfa56379e74cc")
-       (introduction
-        (make-channel-introduction
-         "7677db76330121a901604dfbad19077893865f35"
-         (openpgp-fingerprint
-          "13E7 6CD6 E649 C28C 3385  4DF5 5E5A A665 6149 17F7")))))
+          "2841 9AC6 5038 7440 C7E9  2FFA 2208 D209 58C1 DEB0")))))

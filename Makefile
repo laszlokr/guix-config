@@ -18,9 +18,6 @@ GUIX=./pre-inst-env ${GUIX_PROFILE}/bin/guix
 
 SRC_DIR=./src
 CONFIGS=${SRC_DIR}/configs/configs.scm
-# Explicit Guix load-path flag so (configs patches) and other user modules
-# are always found, regardless of whether guix changes its working directory.
-LOAD_PATH_FLAGS=-L $(CURDIR)/src
 PULL_EXTRA_OPTIONS=
 # --allow-downgrades
 
@@ -35,29 +32,25 @@ repl:
 	-L ../files/emacs/gider/src --listen=tcp:37146
 
 box/home/build: guix
-	GUILE_AUTO_COMPILE=0 RDE_TARGET=box-home ${GUIX} home \
+	RDE_TARGET=box-home ${GUIX} home \
 	${SUBSTITUTE_URLS} \
-	${LOAD_PATH_FLAGS} \
 	--fallback \
 	build ${CONFIGS}
 
 box/home/reconfigure: guix
-	GUILE_AUTO_COMPILE=0 RDE_TARGET=box-home ${GUIX} home \
+	RDE_TARGET=box-home ${GUIX} home \
 	${SUBSTITUTE_URLS} \
-	${LOAD_PATH_FLAGS} \
 	--fallback \
 	reconfigure ${CONFIGS}
 
 box/system/build: guix
 	RDE_TARGET=box-system ${GUIX} system \
 	${SUBSTITUTE_URLS} \
-	${LOAD_PATH_FLAGS} \
 	build ${CONFIGS}
 
 box/system/reconfigure: guix
 	RDE_TARGET=box-system ${GUIX} system \
 	${SUBSTITUTE_URLS} \
-	${LOAD_PATH_FLAGS} \
 	--fallback \
 	--no-bootloader \
 	reconfigure ${CONFIGS}
