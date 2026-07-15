@@ -144,7 +144,6 @@
      "keepassxc" "nextcloud-client"
      "gthumb"
      "kicad" "openscad"
-     ;; "steam"  ;; re-enable once nonguix substitutes are stable
 
      ;;themes
      "hicolor-icon-theme" "adwaita-icon-theme" "gnome-themes-extra"
