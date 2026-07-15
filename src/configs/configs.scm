@@ -1,4 +1,7 @@
 (define-module (configs configs)
+  ;; Must be first: patches (rde packages emacs) before any rde feature
+  ;; evaluates emacs-feature-loader.  See configs/patches.scm for details.
+  #:use-module (configs patches)
   #:use-module (rde features)
   #:use-module (gnu services)
   #:use-module (srfi srfi-1)
