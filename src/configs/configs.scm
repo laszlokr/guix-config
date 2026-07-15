@@ -1,4 +1,5 @@
 (define-module (configs configs)
+  #:use-module (configs patches)
   #:use-module (rde features)
   #:use-module (gnu services)
   #:use-module (srfi srfi-1)
@@ -7,6 +8,7 @@
   ;; #:use-module (configs hosts mintsystem)  ;; uncomment after filling in UUIDs
   #:use-module (configs users laszlokr))
 
+(apply-patches!)
 
 ;;; configs
 
