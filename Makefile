@@ -18,7 +18,7 @@ GUIX=./pre-inst-env ${GUIX_PROFILE}/bin/guix
 
 SRC_DIR=./src
 CONFIGS=${SRC_DIR}/configs/configs.scm
-LOAD_PATH_FLAGS=-L $(CURDIR)/src
+# LOAD_PATH_FLAGS=-L $(CURDIR)/src
 PULL_EXTRA_OPTIONS=
 # --allow-downgrades
 
@@ -33,17 +33,15 @@ repl:
 	-L ../files/emacs/gider/src --listen=tcp:37146
 
 box/home/build: guix
-	GUILE_AUTO_COMPILE=0 RDE_TARGET=box-home ${GUIX} home \
-	${SUBSTITUTE_URLS} \
-	${LOAD_PATH_FLAGS} \
+	RDE_TARGET=box-home ${GUIX} home \
 	--fallback \
+	--no-substitutes \
 	build ${CONFIGS}
 
 box/home/reconfigure: guix
 	GUILE_AUTO_COMPILE=0 RDE_TARGET=box-home ${GUIX} home \
-	${SUBSTITUTE_URLS} \
-	${LOAD_PATH_FLAGS} \
 	--fallback \
+	--no-substitutes \
 	reconfigure ${CONFIGS}
 
 box/system/build: guix
