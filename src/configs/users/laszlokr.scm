@@ -66,7 +66,14 @@
        ;; with autoloads? #f (see configs/configs.scm) and add-to-init-el? #t
        ;; gives us the `require' only.  Without this call the package loads but
        ;; no feature is ever pulled in, and Emacs comes up completely bare.
-       (feature-loader)
+       ;;
+       ;; The `require' is repeated here so the call does not depend on where
+       ;; this form lands relative to the one add-to-init-el? inserts, and the
+       ;; whole thing is wrapped in with-demoted-errors so a failure downgrades
+       ;; to a *Messages* entry instead of aborting init and leaving Emacs bare.
+       (with-demoted-errors "feature-loader failed: %S"
+         (require 'feature-loader)
+         (feature-loader))
 
        (with-eval-after-load 'simple
          (setq-default display-fill-column-indicator-column 80)
