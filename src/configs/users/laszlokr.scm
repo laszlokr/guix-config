@@ -57,7 +57,18 @@
    home-emacs-service-type
    (home-emacs-extension
     (init-el
-     `((with-eval-after-load 'simple
+     `(;; Actually invoke the feature loader.
+       ;;
+       ;; The feature-loader package only *defines* (feature-loader); it does
+       ;; not call it.  Upstream rde emits the call via an ;;;###autoload
+       ;; cookie when autoloads? is #t, but that call is exactly what crashes
+       ;; headless batch Emacs during validate-compiled-autoloads, so we build
+       ;; with autoloads? #f (see configs/configs.scm) and add-to-init-el? #t
+       ;; gives us the `require' only.  Without this call the package loads but
+       ;; no feature is ever pulled in, and Emacs comes up completely bare.
+       (feature-loader)
+
+       (with-eval-after-load 'simple
          (setq-default display-fill-column-indicator-column 80)
          (setq geiser-mode-auto-p nil)
          (setq blink-cursor-mode 1)
