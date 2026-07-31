@@ -65,6 +65,34 @@ box/system/install-bootloader: guix
 	--modules="cryptodisk luks2 gcry_rijndael gcry_sha256 ext2 part_gpt" \
 	/dev/nvme0n1
 
+# reform — MNT Reform (full-size) with Banana Pi CM4 / A311D, aarch64.
+#
+# Needs lykso's checkout on the load path: (mnt-reform a311d) supplies the
+# kernel carrying meson-g12b-bananapi-cm4-mnt-reform2.dts, which upstream guix
+# does not have.  It is NOT usable as a channel (its .guix-channel points at
+# .guix/modules, which does not exist in the repo), so clone it and set:
+#
+#     git clone https://codeberg.org/lykso/mnt-reform-nonguix
+#     make reform/system/build LYKSO_DIR=/path/to/mnt-reform-nonguix
+#
+# aarch64 from an x86_64 host needs --system (emulated) or --target (cross).
+LYKSO_DIR=../mnt-reform-nonguix
+REFORM_SYSTEM=aarch64-linux
+
+reform/system/build: guix
+	RDE_TARGET=reform-system ${GUIX} system \
+	${SUBSTITUTE_URLS} \
+	-L ${LYKSO_DIR} \
+	--system=${REFORM_SYSTEM} \
+	build ${CONFIGS}
+
+# Check substitute availability before committing to a long kernel build.
+reform/weather: guix
+	${GUIX} weather \
+	-L ${LYKSO_DIR} \
+	--system=${REFORM_SYSTEM} \
+	linux-mnt-reform-a311d-6.6
+
 mintsystem/home/build: guix
 	RDE_TARGET=mintsystem-home ${GUIX} home \
 	build ${CONFIGS}

@@ -7,6 +7,11 @@
   #:use-module (ice-9 match)
   #:use-module (configs hosts box)
   ;; #:use-module (configs hosts mintsystem)  ;; uncomment after filling in UUIDs
+  ;; reform needs lykso's checkout on the load path for (mnt-reform a311d);
+  ;; uncomment together with reform-os below and build via `make reform/system/build`,
+  ;; which passes the required -L.  Leaving it imported unconditionally would
+  ;; break box builds, which have no such module.
+  ;; #:use-module (configs hosts reform)
   #:use-module (configs users laszlokr))
 
 
@@ -48,6 +53,19 @@
   (disable-feature-loader-autoloads
    (rde-config-home-environment box-config)))
 
+;; reform — MNT Reform (full-size) with Banana Pi CM4 / A311D, aarch64
+;; (commented out until reform.scm has real NVMe UUIDs and lykso's checkout
+;; is available; see src/configs/hosts/reform.scm)
+;; (define-public reform-config
+;;   (rde-config
+;;    (features
+;;     (append
+;;      %reform-features
+;;      %laszlokr-features))))
+;;
+;; (define-public reform-os
+;;   (rde-config-operating-system reform-config))
+
 ;; mintsystem — HP laptop, home environment only
 ;; (commented out until mintsystem.scm has real UUIDs)
 ;; (define-public mintsystem-config
@@ -66,6 +84,7 @@
     (match rde-target
       ("box-home" box-he)
       ("box-system" box-os)
+      ;; ("reform-system" reform-os)
       ;; ("mintsystem-home" mintsystem-he)
       (_ box-he))))
 
