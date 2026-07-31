@@ -37,9 +37,15 @@
 ;;
 ;; With autoloads? #f the bare call is not emitted at all (see
 ;; home-emacs-feature-loader-packages in (rde home services emacs)), so the
-;; package builds.  Trade-off: features are loaded lazily on `require' rather
-;; than eagerly at Emacs startup; run M-x feature-loader to force-load.
-(define (disable-feature-loader-autoloads he)
+;; package builds.
+;;
+;; autoloads? #f alone leaves Emacs unconfigured, because then nothing loads
+;; the feature-loader at all.  add-to-init-el? #t puts a plain
+;; (require 'feature-loader) in init.el instead, so features still load
+;; eagerly at startup -- just through a normal require in a real Emacs
+;; session rather than an autoload cookie evaluated by headless batch Emacs
+;; during validate-compiled-autoloads.
+(define (fix-feature-loader he)
   (home-environment
    (inherit he)
    (services
@@ -47,10 +53,11 @@
       (home-emacs-feature-loader-service-type
        config => (home-emacs-feature-loader-configuration
                   (inherit config)
-                  (autoloads? #f)))))))
+                  (autoloads? #f)
+                  (add-to-init-el? #t)))))))
 
 (define-public box-he
-  (disable-feature-loader-autoloads
+  (fix-feature-loader
    (rde-config-home-environment box-config)))
 
 ;; reform — MNT Reform (full-size) with Banana Pi CM4 / A311D, aarch64
