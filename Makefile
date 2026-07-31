@@ -18,8 +18,6 @@ GUIX=./pre-inst-env ${GUIX_PROFILE}/bin/guix
 
 SRC_DIR=./src
 CONFIGS=${SRC_DIR}/configs/configs.scm
-# -L makes ./src modules resolvable regardless of guix's working directory
-LOAD_PATH_FLAGS=-L $(CURDIR)/src
 PULL_EXTRA_OPTIONS=
 # --allow-downgrades
 
@@ -36,27 +34,23 @@ repl:
 box/home/build: guix
 	RDE_TARGET=box-home ${GUIX} home \
 	${SUBSTITUTE_URLS} \
-	${LOAD_PATH_FLAGS} \
 	--fallback \
 	build ${CONFIGS}
 
 box/home/reconfigure: guix
 	RDE_TARGET=box-home ${GUIX} home \
 	${SUBSTITUTE_URLS} \
-	${LOAD_PATH_FLAGS} \
 	--fallback \
 	reconfigure ${CONFIGS}
 
 box/system/build: guix
 	RDE_TARGET=box-system ${GUIX} system \
 	${SUBSTITUTE_URLS} \
-	${LOAD_PATH_FLAGS} \
 	build ${CONFIGS}
 
 box/system/reconfigure: guix
 	RDE_TARGET=box-system ${GUIX} system \
 	${SUBSTITUTE_URLS} \
-	${LOAD_PATH_FLAGS} \
 	--fallback \
 	--no-bootloader \
 	reconfigure ${CONFIGS}
