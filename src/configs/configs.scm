@@ -1,7 +1,9 @@
 (define-module (configs configs)
   #:use-module (rde features)
   #:use-module (gnu home)
+  #:use-module (gnu home services)
   #:use-module (gnu services)
+  #:use-module (guix gexp)
   #:use-module (rde home services emacs)
   #:use-module (srfi srfi-1)
   #:use-module (ice-9 match)
@@ -56,9 +58,38 @@
                   (autoloads? #f)
                   (add-to-init-el? #t)))))))
 
+;; feature-podman hardcodes the btrfs storage driver:
+;;
+;;     ("containers/storage.conf"
+;;      ,(plain-file "storage.conf" "[storage]\ndriver = \"btrfs\""))
+;;
+;; with no keyword argument to change it.  box's home is on ext4, so podman
+;; fails outright:
+;;
+;;     Error: configure storage: ".../storage/btrfs" is not on a btrfs
+;;     filesystem: prerequisites for driver not satisfied
+;;
+;; Adding a second service declaring the same file is a duplicate-entry
+;; collision, not an override (that is what broke in 79e77d1).  Instead,
+;; replace the existing entry in place.
+(define (fix-podman-storage-driver he)
+  (define (replace-entry entry)
+    (if (and (pair? entry)
+             (equal? (car entry) "containers/storage.conf"))
+        (list "containers/storage.conf"
+              (plain-file "storage.conf" "[storage]\ndriver = \"overlay\"\n"))
+        entry))
+  (home-environment
+   (inherit he)
+   (services
+    (modify-services (home-environment-user-services he)
+      (home-xdg-configuration-files-service-type
+       files => (map replace-entry files))))))
+
 (define-public box-he
-  (fix-feature-loader
-   (rde-config-home-environment box-config)))
+  (fix-podman-storage-driver
+   (fix-feature-loader
+    (rde-config-home-environment box-config))))
 
 ;; reform — MNT Reform (full-size) with Banana Pi CM4 / A311D, aarch64
 ;; (commented out until reform.scm has real NVMe UUIDs and lykso's checkout
