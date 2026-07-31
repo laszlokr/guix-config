@@ -71,7 +71,14 @@
        ;; this form lands relative to the one add-to-init-el? inserts, and the
        ;; whole thing is wrapped in with-demoted-errors so a failure downgrades
        ;; to a *Messages* entry instead of aborting init and leaving Emacs bare.
+       ;; modus-themes must be loaded first.  feature-loader requires rde-fonts,
+       ;; which requires fontaine, which enables a theme; that fires rde's
+       ;; after-enable-theme hook, which calls modus-themes-get-current-theme.
+       ;; In emacs-modus-themes 5.3.0 that function is not autoloaded, so if
+       ;; modus-themes.el has not been loaded by then the hook dies with
+       ;; void-function and takes the rest of init with it.
        (with-demoted-errors "feature-loader failed: %S"
+         (require 'modus-themes)
          (require 'feature-loader)
          (feature-loader))
 
