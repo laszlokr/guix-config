@@ -95,6 +95,16 @@
       }
     ],
     "final": "proxy",
+    # Which DNS server resolves domain names used by outbounds (your server's
+    # hostname, urltest URLs).  Required since 1.12; omitting it is fatal in
+    # 1.13 unless ENABLE_DEPRECATED_MISSING_DOMAIN_RESOLVER is set.
+    #
+    # This MUST be the direct resolver, not dns-proxy: resolving the proxy
+    # server's own hostname through the proxy is circular, and the tunnel
+    # would never come up.
+    "default_domain_resolver": {
+      "server": "dns-local"
+    },
     # Keeps traffic to the VPN server itself off the tunnel, which is what
     # prevents a routing loop.  Do not turn this off.
     "auto_detect_interface": true
