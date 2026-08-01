@@ -1,0 +1,168 @@
+{
+  "_comment": [
+    "TEMPLATE ONLY -- contains no credentials.",
+    "",
+    "Copy to /etc/sing-box/config.json on box, fill in the REPLACE_ME values,",
+    "then lock it down:",
+    "",
+    "    sudo mkdir -p /etc/sing-box",
+    "    sudo cp files/sing-box/config.template.json /etc/sing-box/config.json",
+    "    sudo $EDITOR /etc/sing-box/config.json",
+    "    sudo chown root:root /etc/sing-box/config.json",
+    "    sudo chmod 0600 /etc/sing-box/config.json",
+    "",
+    "NEVER commit the filled-in version: it holds a trojan password and a",
+    "vmess UUID.  It deliberately lives outside /gnu/store, which is",
+    "world-readable."
+  ],
+
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+
+  "dns": {
+    "servers": [
+      {
+        "tag": "dns-proxy",
+        "address": "tls://1.1.1.1",
+        "detour": "proxy"
+      },
+      {
+        "tag": "dns-direct",
+        "address": "local",
+        "detour": "direct"
+      }
+    ],
+    "rules": [
+      {
+        "outbound": "any",
+        "server": "dns-direct"
+      }
+    ],
+    "strategy": "prefer_ipv4",
+    "final": "dns-proxy"
+  },
+
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "address": ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
+      "mtu": 9000,
+      "auto_route": true,
+      "strict_route": true,
+      "stack": "gvisor",
+      "sniff": true,
+      "sniff_override_destination": false
+    }
+  ],
+
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "proxy",
+      "outbounds": ["auto", "trojan-primary", "vmess-fallback"],
+      "default": "auto"
+    },
+    {
+      "type": "urltest",
+      "tag": "auto",
+      "outbounds": ["trojan-primary", "vmess-fallback"],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "3m",
+      "tolerance": 50
+    },
+    {
+      "type": "trojan",
+      "tag": "trojan-primary",
+      "server": "REPLACE_ME_SERVER_HOST",
+      "server_port": 443,
+      "password": "REPLACE_ME_TROJAN_PASSWORD",
+      "tls": {
+        "enabled": true,
+        "server_name": "REPLACE_ME_SERVER_HOST",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "type": "vmess",
+      "tag": "vmess-fallback",
+      "server": "REPLACE_ME_SERVER_HOST",
+      "server_port": 8443,
+      "uuid": "REPLACE_ME_VMESS_UUID",
+      "security": "auto",
+      "alter_id": 0,
+      "tls": {
+        "enabled": true,
+        "server_name": "REPLACE_ME_SERVER_HOST",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    },
+    {
+      "type": "dns",
+      "tag": "dns-out"
+    }
+  ],
+
+  "route": {
+    "rules": [
+      {
+        "protocol": "dns",
+        "outbound": "dns-out"
+      },
+
+      {
+        "_comment": "Carve-outs: keep LAN and link-local reachable so SSH from other machines, local DNS and NAS/printer keep working.",
+        "ip_cidr": [
+          "127.0.0.0/8",
+          "10.0.0.0/8",
+          "172.16.0.0/12",
+          "192.168.0.0/16",
+          "169.254.0.0/16",
+          "224.0.0.0/4",
+          "::1/128",
+          "fc00::/7",
+          "fe80::/10"
+        ],
+        "outbound": "direct"
+      },
+
+      {
+        "_comment": "Never route the VPN server itself through the tunnel -- that is a routing loop. auto_detect_interface normally handles this; this rule is the explicit belt-and-braces version. Set to the server's IP literal, not its hostname.",
+        "ip_cidr": ["REPLACE_ME_SERVER_IP/32"],
+        "outbound": "direct"
+      },
+
+      {
+        "_comment": "Guix substitute servers stay direct so builds do not stall behind the tunnel. Remove these two rules if you want literally everything proxied.",
+        "domain_suffix": ["bordeaux.guix.gnu.org", "substitutes.nonguix.org"],
+        "outbound": "direct"
+      }
+    ],
+
+    "final": "proxy",
+    "auto_detect_interface": true
+  },
+
+  "experimental": {
+    "cache_file": {
+      "enabled": true,
+      "path": "/var/lib/sing-box/cache.db"
+    }
+  }
+}

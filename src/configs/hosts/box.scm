@@ -77,6 +77,54 @@
    (system-services-getter podman-compose-system-services)))
 
 
+;;; sing-box VPN feature
+;;
+;; System-wide transparent proxy via a TUN interface: every host process,
+;; including podman containers (their egress goes through the host routing
+;; table), is routed through the tunnel.
+;;
+;; SECURITY: the configuration holds a trojan password and a vmess UUID.
+;; Anything Guix puts in the store is WORLD-READABLE, so the config is NOT
+;; generated from this file.  It lives outside the store at
+;;
+;;     /etc/sing-box/config.json      root:root, chmod 0600
+;;
+;; created by hand on box from the committed, credential-free template at
+;; files/sing-box/config.template.json.  This service only references the
+;; path.  Never commit the real config.
+;;
+;; The package comes from the rosenthal channel:
+;;   (rosenthal packages networking) -> sing-box 1.13.12, built with
+;;   with_gvisor, which is what makes the TUN inbound work.
+
+(define %sing-box-config "/etc/sing-box/config.json")
+
+(define (feature-box-sing-box)
+  (define (sing-box-shepherd-services config)
+    (list
+     (simple-service
+      'sing-box
+      shepherd-root-service-type
+      (list
+       (shepherd-service
+        (provision '(sing-box))
+        (requirement '(networking))
+        (documentation "sing-box transparent proxy (TUN, system-wide).")
+        (respawn? #t)
+        (start
+         #~(make-forkexec-constructor
+            (list #$(file-append (@ (rosenthal packages networking) sing-box)
+                                 "/bin/sing-box")
+                  "run" "-c" #$%sing-box-config)
+            #:log-file "/var/log/sing-box.log"))
+        (stop #~(make-kill-destructor)))))))
+
+  (feature
+   (name 'box-sing-box)
+   (values '((box-sing-box . #t)))
+   (system-services-getter sing-box-shepherd-services)))
+
+
 ;;; Host-specific features
 
 (define-public %box-features
@@ -98,6 +146,7 @@
    ;; boot-time Shepherd services are not wired in.  feature-box-podman-compose
    ;; above is kept for when they should run unattended again.
    ;; (feature-box-podman-compose)
+   (feature-box-sing-box)
    (feature-kanshi
     #:extra-config
     `((profile single ((output HDMI-A-1 enable)))

@@ -8,6 +8,12 @@ docker/.env
 docker/**/.env
 *.secret
 
+# sing-box: only the credential-free template is tracked.  The real config
+# holds a trojan password and a vmess UUID and belongs at
+# /etc/sing-box/config.json (root:root, 0600), outside the world-readable store.
+files/sing-box/config.json
+files/sing-box/*.local.json
+
 # Docker volume data
 docker/**/volumes/
 
