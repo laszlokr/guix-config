@@ -6,6 +6,7 @@
   #:use-module (guix gexp)
   #:use-module (rde home services emacs)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-13)
   #:use-module (ice-9 match)
   #:use-module (configs hosts box)
   ;; #:use-module (configs hosts mintsystem)  ;; uncomment after filling in UUIDs
@@ -72,19 +73,36 @@
 ;; Adding a second service declaring the same file is a duplicate-entry
 ;; collision, not an override (that is what broke in 79e77d1).  Instead,
 ;; replace the existing entry in place.
+;;
+;; Matched by path rather than by service type: modify-services on
+;; home-xdg-configuration-files-service-type fails with
+;;
+;;     error: modify-services: service 'home-xdg-configuration' not found
+;;
+;; because that type has no direct instance in the service list here.  Walking
+;; the services and rewriting any entry whose path ends in
+;; containers/storage.conf works whichever service ultimately carries it, and
+;; is a no-op if the entry is absent.
 (define (fix-podman-storage-driver he)
+  (define overlay-storage-conf
+    (plain-file "storage.conf" "[storage]\ndriver = \"overlay\"\n"))
+
   (define (replace-entry entry)
     (if (and (pair? entry)
-             (equal? (car entry) "containers/storage.conf"))
-        (list "containers/storage.conf"
-              (plain-file "storage.conf" "[storage]\ndriver = \"overlay\"\n"))
+             (string? (car entry))
+             (string-suffix? "containers/storage.conf" (car entry)))
+        (list (car entry) overlay-storage-conf)
         entry))
+
+  (define (replace-in-service s)
+    (let ((value (service-value s)))
+      (if (list? value)
+          (service (service-kind s) (map replace-entry value))
+          s)))
+
   (home-environment
    (inherit he)
-   (services
-    (modify-services (home-environment-user-services he)
-      (home-xdg-configuration-files-service-type
-       files => (map replace-entry files))))))
+   (services (map replace-in-service (home-environment-user-services he)))))
 
 (define-public box-he
   (fix-podman-storage-driver
