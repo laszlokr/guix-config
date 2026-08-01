@@ -94,7 +94,10 @@
               (openssh-configuration
                (password-authentication? #f)
                (permit-root-login 'prohibit-password)))))
-   (feature-box-podman-compose)
+   ;; Compose stacks are started by hand while the system is up, so the
+   ;; boot-time Shepherd services are not wired in.  feature-box-podman-compose
+   ;; above is kept for when they should run unattended again.
+   ;; (feature-box-podman-compose)
    (feature-kanshi
     #:extra-config
     `((profile single ((output HDMI-A-1 enable)))
