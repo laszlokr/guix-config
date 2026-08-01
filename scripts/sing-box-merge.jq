@@ -160,10 +160,19 @@
     "path": "/var/lib/sing-box/cache.db"
   }
 
-# Trojan primary, vmess fallback, as requested.  vless-reality and hysteria2
-# stay defined in the file and selectable by tag, just not in the auto rotation.
+# Rotation order.
+#
+# Originally trojan primary / vmess fallback, per preference.  Changed after
+# end-to-end testing (scripts/sing-box-test-outbounds.sh): hysteria2 was the
+# only outbound to complete a handshake and return the server's exit IP, while
+# trojan-reality, vless-reality and vmess-tls all accepted TCP and then hung
+# until timeout.  Those three are served by the xray/nginx containers; hysteria2
+# runs independently, so it does not share their failure domain.
+#
+# trojan-reality is kept second so urltest promotes it automatically once the
+# server side handshakes correctly -- no config change needed here.
 | (.outbounds[] | select(.tag == "auto")).outbounds
-    = ["trojan-reality", "vmess-tls"]
+    = ["hysteria2", "trojan-reality"]
 | (.outbounds[] | select(.tag == "auto")).url
     = "https://www.gstatic.com/generate_204"
 | (.outbounds[] | select(.tag == "auto")).interval = "3m"
