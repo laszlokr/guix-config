@@ -22,8 +22,24 @@
 # Written for sing-box 1.13.x (rosenthal channel).  Uses the modern
 # "action": "hijack-dns" route rule rather than a legacy dns-type outbound.
 
+# Collect the literal IPv4 addresses of every outbound server, so they can be
+# excluded from the tunnel.  Without this, auto_route sends the default route
+# into tun0 and sing-box's own connection to the VPN server re-enters its own
+# TUN -- a routing loop that surfaces as "connect: connection refused" even
+# though the port is reachable directly.
+#
+# Derived from the config rather than hardcoded, so this script stays generic
+# and no address is baked into the repo.  Outbounds using hostnames rather than
+# IP literals yield nothing here and fall back to auto_detect_interface.
+([.outbounds[]?
+  | .server?
+  | select(type == "string")
+  | select(test("^[0-9]{1,3}(\\.[0-9]{1,3}){3}$"))]
+ | unique
+ | map(. + "/32")) as $server_cidrs
+
 # Route traffic into a TUN device instead of a local SOCKS/HTTP listener.
-.inbounds = [
+| .inbounds = [
   {
     "type": "tun",
     "tag": "tun-in",
@@ -31,7 +47,8 @@
     "mtu": 9000,
     "auto_route": true,
     "strict_route": true,
-    "stack": "gvisor"
+    "stack": "gvisor",
+    "route_exclude_address": $server_cidrs
   }
 ]
 
@@ -82,6 +99,12 @@
           "fc00::/7",
           "fe80::/10"
         ],
+        "outbound": "direct"
+      },
+      # The VPN server itself must never be routed through the tunnel.
+      # Belt-and-braces alongside route_exclude_address on the inbound.
+      {
+        "ip_cidr": $server_cidrs,
         "outbound": "direct"
       },
       # Keep Guix substitutes direct so builds do not stall behind the tunnel.
