@@ -313,8 +313,12 @@
      #:user-name "laszlokr"
      #:full-name "Laszlo Krajnikovszkij"
      #:email "laszlo@laszlo.is"
+     ;; No "docker" here: the docker feature was dropped in favour of podman,
+     ;; so nothing declares that group and the system build fails with
+     ;; "supplementary group 'docker' of user 'laszlokr' is undeclared".
+     ;; Rootless podman needs no group membership.
      #:user-groups
-     '("wheel" "netdev" "audio" "video" "libvirt" "docker")
+     '("wheel" "netdev" "audio" "video" "libvirt")
      #:user-initial-password-hash
      "$6$abc$9a9KlQ2jHee45D./UOzUZWLHjI/atvz2Dp6.Zz6hjRcP2KJv\
 G9.lc/f.U9QxNW1.2MZdV1KzW6uMJ0t23KKoN/"
