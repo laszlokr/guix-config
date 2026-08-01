@@ -31,8 +31,7 @@
     "mtu": 9000,
     "auto_route": true,
     "strict_route": true,
-    "stack": "gvisor",
-    "sniff": true
+    "stack": "gvisor"
   }
 ]
 
@@ -57,6 +56,13 @@
 
 | .route = {
     "rules": [
+      # Protocol sniffing.  In sing-box 1.13 the inbound "sniff" field is gone
+      # (deprecated in 1.11, removed in 1.13); it is a rule action now.  Without
+      # this, the DNS rule below cannot match, because nothing identifies the
+      # protocol of a connection.
+      {
+        "action": "sniff"
+      },
       # Catch DNS before anything else and answer it via the dns block.
       {
         "protocol": "dns",
