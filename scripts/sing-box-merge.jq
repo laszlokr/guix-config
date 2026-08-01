@@ -38,6 +38,18 @@
  | unique
  | map(. + "/32")) as $server_cidrs
 
+# Networks kept out of the tunnel at the routing layer, not just in route
+# rules.  route.rules only govern traffic sing-box has already accepted;
+# inbound connections (SSH from another machine) break earlier than that,
+# when the kernel sends reply packets into tun0 instead of back out the
+# physical interface.
+| ["127.0.0.0/8",
+   "10.0.0.0/8",
+   "172.16.0.0/12",
+   "192.168.0.0/16",
+   "169.254.0.0/16",
+   "224.0.0.0/4"] as $lan_cidrs
+
 # Route traffic into a TUN device instead of a local SOCKS/HTTP listener.
 | .inbounds = [
   {
@@ -46,9 +58,19 @@
     "address": ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
     "mtu": 9000,
     "auto_route": true,
-    "strict_route": true,
+    # strict_route forces EVERYTHING through the TUN, including reply packets
+    # for inbound connections.  With it on, SSH into this machine from another
+    # host dies: the request arrives on the physical interface but the reply is
+    # routed into tun0 and never returns.  box is reachable over SSH and is
+    # becoming a server, so this stays off.
+    #
+    # The tradeoff is a weaker leak guarantee: some traffic can bypass the
+    # tunnel.  The route rules below still direct everything that is not LAN
+    # or the VPN server itself to "proxy".
+    "strict_route": false,
     "stack": "gvisor",
-    "route_exclude_address": $server_cidrs
+    # Excluded at the routing layer so inbound LAN connections keep working.
+    "route_exclude_address": ($server_cidrs + $lan_cidrs)
   }
 ]
 
