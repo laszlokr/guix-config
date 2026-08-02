@@ -157,9 +157,9 @@
     `((profile single ((output HDMI-A-1 enable)))
       (profile dual ((output HDMI-A-1 enable)
                      (output HDMI-A-2 enable)))
-      (profile triple ((output HDMI-A-1 enable mode 1920x1080
+      (profile triple ((output DP-2 enable mode 1920x1080
                                position 0,120 transform 270)
                        (output HDMI-A-2 enable mode 3840x2160
                                position 1080,0)
-                       (output DP-2 enable mode 1920x1080
+                       (output HDMI-A-1 enable mode 1920x1080
                                position 4920,120 transform 90)))))))
