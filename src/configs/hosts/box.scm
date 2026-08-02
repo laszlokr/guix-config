@@ -149,6 +149,17 @@
    (feature-box-sing-box)
    (feature-kanshi
     #:extra-config
+    ;; The triple profile matches the usual desk setup: 4K landscape in the
+    ;; middle, a portrait panel either side.  Without it none of the profiles
+    ;; matched a three-output configuration, so kanshi stayed idle and DP-2
+    ;; was left wherever sway defaulted it.  Geometry mirrors
+    ;; sway-extra-config-service in users/laszlokr.scm -- keep the two in sync.
     `((profile single ((output HDMI-A-1 enable)))
       (profile dual ((output HDMI-A-1 enable)
-                     (output HDMI-A-2 enable)))))))
+                     (output HDMI-A-2 enable)))
+      (profile triple ((output HDMI-A-1 enable mode 1920x1080
+                               position 0,120 transform 270)
+                       (output HDMI-A-2 enable mode 3840x2160
+                               position 1080,0)
+                       (output DP-2 enable mode 1920x1080
+                               position 4920,120 transform 90)))))))

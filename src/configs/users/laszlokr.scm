@@ -181,8 +181,19 @@
   (simple-service
    'sway-extra-config
    home-sway-service-type
-   `((output HDMI-A-1 pos 0 0 res 1920x1080)
-     (output HDMI-A-2 pos 1920 0 res 3840x2160)
+   ;; Three displays, 4K landscape in the middle flanked by two portrait ones.
+   ;;
+   ;;   HDMI-A-1  left,   1920x1080 rotated counter-clockwise -> 1080x1920
+   ;;   HDMI-A-2  centre, 3840x2160 landscape
+   ;;   DP-2      right,  1920x1080 rotated clockwise         -> 1080x1920
+   ;;
+   ;; Positions are in post-rotation layout coordinates, so the rotated panels
+   ;; are 1080 wide, not 1920:  0 | 1080..4920 | 4920.
+   ;; The portrait monitors are offset by y=120 to centre them against the
+   ;; 2160-tall middle screen ((2160 - 1920) / 2); set y=0 to top-align instead.
+   `((output HDMI-A-1 pos 0 120 res 1920x1080 transform 270)
+     (output HDMI-A-2 pos 1080 0 res 3840x2160)
+     (output DP-2 pos 4920 120 res 1920x1080 transform 90)
      ,@(map (lambda (x) `(workspace ,x output HDMI-A-2)) (iota 8 1))
 
      ;; (workspace 9 output DP-2)
