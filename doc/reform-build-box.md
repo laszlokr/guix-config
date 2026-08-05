@@ -33,8 +33,12 @@ So:
 Both are wired up in the Makefile (`make reform/system/cross-build`,
 `make reform/system/native-build`).
 
-Measured, at the channels pinned in `rde/channels-lock.scm` (guix 8db8515,
-rde 70a1881, nonguix 3b66965), on an x86_64 host:
+All of the below was measured at the channels pinned in
+`rde/channels-lock.scm` (guix 8db8515, rde 70a1881, nonguix 3b66965) on an
+x86_64 host with qemu-aarch64 binfmt. `reform-system` builds to completion
+that way — `guix system build --system=aarch64-linux --cores=1` produced a
+system derivation with the MNT Reform kernel and the extlinux bootloader
+configuration.
 
 ```
 guix build -d --target=aarch64-linux-gnu hello  -> …-hello-2.12.2 output sz8x8ca…
@@ -101,6 +105,21 @@ guix build --system=aarch64-linux hello       # should fetch or build
 Emulated builds are roughly 5–20× slower than native x86_64.  A full desktop
 system closure is a long job — start it and walk away.  It is still far
 faster than building on the Reform, which mostly cannot.
+
+Two operational notes from actually doing this:
+
+- **Use `--cores=1` if a build wedges.** With `--cores=4`, the `man-db`
+  profile hook died with `qemu: uncaught target signal 11 (Segmentation
+  fault)` and then hung indefinitely at "34/84 building list of man-db
+  entries". The identical build with `--cores=1` completed with no
+  segfaults. qemu-user and heavily-forking builds do not always get along;
+  losing the parallelism costs less than losing the build.
+- **Check the binfmt handler is still registered** if a build fails with
+  `executing '…/bin/guile': No such file or directory`. That error means the
+  aarch64 interpreter went away, not that the file is missing — verify with
+  `cat /proc/sys/fs/binfmt_misc/qemu-aarch64`. On a Guix System box
+  `qemu-binfmt-service-type` keeps it registered across reboots, so this
+  should not bite you there.
 
 ## 2. Check substitute coverage before building anything
 
