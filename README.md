@@ -18,6 +18,7 @@ The workflow implies having all Emacs buffers in new frames in order to utilize 
 |------------|-----------------|-----------------------------------------------------|-------------------------------------------|
 | box        | Minisforum HX90 | [box](src/configs/hosts/box.scm)                   | Main machine at home, runs full Guix system |
 | mintsystem | HP laptop       | [mintsystem](src/configs/hosts/mintsystem.scm)     | HP laptop, runs home environment via Guix |
+| reform     | MNT Reform (Banana Pi CM4, A311D, aarch64) | [reform](src/configs/hosts/reform.scm) | Full Guix system on NVMe; built on `box`, installed with `guix system init` |
 
 ### Usage
 
@@ -32,7 +33,18 @@ make box/home/reconfigure
 
 # mintsystem (HP laptop) — home environment
 make mintsystem/home/reconfigure
+
+# reform (MNT Reform, aarch64) — built on box, never on the Reform itself
+make reform/system/dry-run        # cross-compile check
+make reform/system/cross-build    # config validation
+make reform/system/native-build   # what the Reform actually downloads (needs qemu binfmt)
+make reform/weather               # substitute coverage for the kernel
 ```
+
+Installing the Reform: [doc/reform-build-box.md](doc/reform-build-box.md)
+(serving builds from `box`) then
+[doc/reform-install.md](doc/reform-install.md) (the `guix system init`
+checklist).
 
 ### Planned improvements
 

@@ -68,6 +68,47 @@ box/system/install-bootloader: guix
 	--modules="cryptodisk luks2 gcry_rijndael gcry_sha256 ext2 part_gpt" \
 	/dev/nvme0n1
 
+# reform — MNT Reform, Banana Pi CM4 module (Amlogic A311D, aarch64).
+#
+# The Reform does not have the RAM to build its own kernel, so everything is
+# built here on the x86_64 box and fetched from it.  See
+# doc/reform-build-box.md (serving) and doc/reform-install.md (installing).
+#
+# NOTE: cross-built (--target=) and natively-built (--system=) store items are
+# *different derivations*.  Only --system=aarch64-linux output can be served as
+# substitutes to the Reform.  The cross target is a structural check of the
+# config only -- it does not build to completion (libgudev fails to
+# cross-compile; see doc/reform-build-box.md).
+REFORM_CROSS=--target=aarch64-linux-gnu
+REFORM_NATIVE=--system=aarch64-linux
+
+reform/system/dry-run: guix
+	RDE_TARGET=reform-system ${GUIX} system \
+	${SUBSTITUTE_URLS} \
+	${LOAD_PATH_FLAGS} \
+	${REFORM_CROSS} \
+	build --dry-run ${CONFIGS}
+
+reform/system/cross-build: guix
+	RDE_TARGET=reform-system ${GUIX} system \
+	${SUBSTITUTE_URLS} \
+	${LOAD_PATH_FLAGS} \
+	${REFORM_CROSS} \
+	build ${CONFIGS}
+
+# Requires qemu-binfmt for aarch64 on this box.  This is the build that
+# produces the store items the Reform will actually ask for.
+reform/system/native-build: guix
+	RDE_TARGET=reform-system ${GUIX} system \
+	${SUBSTITUTE_URLS} \
+	${LOAD_PATH_FLAGS} \
+	${REFORM_NATIVE} \
+	build ${CONFIGS}
+
+reform/weather: guix
+	${GUIX} weather ${REFORM_NATIVE} \
+	linux-libre-arm64-mnt-reform linux-firmware
+
 mintsystem/home/build: guix
 	RDE_TARGET=mintsystem-home ${GUIX} home \
 	build ${CONFIGS}
