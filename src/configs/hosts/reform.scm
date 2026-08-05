@@ -7,7 +7,6 @@
   #:use-module (gnu system)
   #:use-module (gnu system file-systems)
   #:use-module (gnu system shadow)
-  #:use-module (gnu system linux-initrd)
   #:use-module (srfi srfi-1)
   #:use-module (rde features)
   #:use-module (rde features base)
@@ -132,18 +131,31 @@
 ;; nonfree.
 
 (define %reform-initrd-modules
-  ;; %base-initrd-modules expands to (default-initrd-modules) evaluated
-  ;; against (%current-system), and rde's feature-kernel takes it as a
-  ;; keyword default -- i.e. on the *build* machine.  Building this host
-  ;; from x86_64 therefore drags in three modules that exist only in an
-  ;; x86 kernel, and the initrd build would fail looking for them.
-  ;; (Verified: without this filter the resulting operating-system carries
-  ;; "isci"; with it the list is 24 -> 21 modules.)  Everything else in the
-  ;; base list -- including "nvme", needed to find the root device -- is
-  ;; architecture-neutral.
-  (remove (lambda (module)
-            (member module '("pata_acpi" "pata_atiixp" "isci")))
-          %base-initrd-modules))
+  ;; %base-initrd-modules must NOT be used here.  It expands to
+  ;; (default-initrd-modules) evaluated against (%current-system) -- and
+  ;; rde's feature-kernel takes it as a keyword default, so building this
+  ;; host from x86_64 produces a list describing an x86 desktop.  The
+  ;; initrd build then dies on the first name this kernel does not ship:
+  ;;
+  ;;   gnu/build/linux-modules.scm:278:5: kernel module not found "uas"
+  ;;
+  ;; It is not only the obviously-x86 entries.  Of the 24 modules in the
+  ;; base list, exactly seven exist in linux-libre-arm64-mnt-reform's
+  ;; module tree: nvme, dm-crypt, virtio_pci, virtio_balloon, virtio_blk,
+  ;; virtio_net and virtio_mmio.  The rest are either built into this
+  ;; kernel (usbhid, mmc_block, xts, nls_iso8859-1 ...) or absent
+  ;; (ahci, uas, isci, pata_*).  Built-in is fine -- it just means they
+  ;; must not be named as initrd modules.
+  ;;
+  ;; ext4 is built in too, so the root file system needs nothing here;
+  ;; base-initrd derives file-system modules from the file-systems field
+  ;; anyway.  What the initrd genuinely needs is the block controller.
+  ;;
+  ;; Re-derive after a kernel bump:
+  ;;   find $(guix build -e '(@ (gnu packages linux) \
+  ;;     linux-libre-arm64-mnt-reform)')/lib/modules -name '<module>.ko*'
+  '("nvme"                              ;root device lives on the NVMe
+    "dm-crypt"))                        ;leaves room for a LUKS root later
 
 
 ;;; Host-specific services
