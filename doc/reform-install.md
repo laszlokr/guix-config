@@ -152,29 +152,83 @@ Several GB each for a desktop closure. If the SD is tight, garbage-collect
 
 ## 7. `guix system init`
 
+Check what it will do *before* committing to it:
+
 ```sh
 cd ~/guix-config
-sudo RDE_TARGET=reform-system \
-     GUILE_LOAD_PATH="$PWD/src" \
-     ./target/profiles/guix/bin/guix system init \
-     --substitute-urls='http://box.lan:3000 https://ci.guix.gnu.org https://bordeaux.guix.gnu.org https://substitutes.nonguix.org' \
-     src/configs/configs.scm /mnt
+make reform/system/dry-run
+```
+
+The kernel must say "would be downloaded". If it says "would be built", stop
+and fix substitutes — that build does not fit on this machine. Everything
+that legitimately builds here is this host's own service glue (shepherd
+`.go` files, `etc`, activation scripts): Guile compilation, a few hundred
+small derivations, fine on 4 GB.
+
+Then:
+
+```sh
+make reform/system/init
+```
+
+which runs, with `ROOT_MOUNT_POINT=/mnt`:
+
+```sh
+sudo RDE_TARGET=reform-system ./pre-inst-env target/profiles/guix/bin/guix system \
+     --substitute-urls='http://box.lan:3000 …' \
+     init ./src/configs/configs.scm /mnt
 ```
 
 Notes:
 
 - `RDE_TARGET=reform-system` is what makes `configs.scm` return `reform-os`;
   without it you get `box-he` and the command fails.
-- `GUILE_LOAD_PATH="$PWD/src"` is what `./pre-inst-env` does — needed for the
-  `(configs …)` modules to resolve. `sudo` drops the environment, so both are
-  set on the `sudo` line rather than exported.
-- Put the box first in `--substitute-urls` so it is preferred.
+- `./pre-inst-env` sets `GUILE_LOAD_PATH` so the `(configs …)` modules
+  resolve. It runs under `sudo`, so the load path is set on the root side —
+  don't try to export it beforehand, `sudo` drops it.
+- Edit `REFORM_SUBSTITUTE_URLS` in the Makefile once `box.lan:3000` is real,
+  or override per-invocation:
+  `make reform/system/init REFORM_SUBSTITUTE_URLS=--substitute-urls='…'`.
 - **Do not pass `--no-bootloader`.** There is no bootloader *installer* for
   this host, but that flag also skips writing `/mnt/boot/extlinux/extlinux.conf`,
   which is the one thing that has to happen.
-- Expect downloads, not builds. If it starts building the kernel, kill it: the
-  box has not published what this machine is asking for, and the A311D does not
-  have the RAM to finish.
+- **Do not `make cow-store` first.** See step 6.
+
+### If it stops on initrd modules
+
+`guix system init` runs two checks as root that never fire on the box.
+`check-file-system-availability` catches a forgotten placeholder UUID
+(step 5). The other, `check-device-initrd-modules`, is the one that can
+mislead you:
+
+```
+you may need these modules in the initrd for /dev/nvme0n1p1: …
+```
+
+It walks the sysfs chain of the device **on the running Debian**, so the
+names it suggests come from *Debian's* kernel. They are not necessarily
+module names in the Guix MNT Reform kernel — that kernel has much of this
+built in, and naming a built-in module makes the initrd build fail with
+`kernel module not found`. So do not paste the suggestions into
+`initrd-modules` reflexively.
+
+Check first whether the Guix kernel actually ships it as a module:
+
+```sh
+find $(guix build -e '(@ (gnu packages linux) linux-libre-arm64-mnt-reform)') \
+     -name '<module>.ko*'
+```
+
+If it does, add it to `%reform-initrd-modules` in `hosts/reform.scm`. If it
+does not, the module is built in and the check is wrong for this kernel —
+re-run with `--skip-checks` (the error message says so itself):
+
+```sh
+make reform/system/init REFORM_EXTRA_OPTIONS=--skip-checks
+```
+
+`--skip-checks` disables the file-system availability check too, so only
+reach for it once you have confirmed the root UUID is real.
 
 Afterwards, sanity-check what it wrote:
 

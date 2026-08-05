@@ -310,8 +310,33 @@ guix pull --system=aarch64-linux -C rde/channels-lock.scm \
      -p /tmp/aarch64-guix-profile
 ```
 
-`guix pull` takes `--system` (it accepts the standard build options). This
-populates the box's store with the aarch64 channel-instance derivations that
-the Reform's own `guix pull -C rde/channels-lock.scm` will ask for.
+`guix pull` takes `--system` — it pulls in `%standard-native-build-options`,
+so `-s/--system` is available (verified, not assumed). This populates the
+box's store with the aarch64 channel-instance derivations that the Reform's
+own `guix pull -C rde/channels-lock.scm` will ask for.
 
 Then the same pull on the Reform is mostly downloads from the box.
+
+## 8. What the box cannot prebuild: the home environment
+
+`guix home` takes **neither `--system` nor `--target`** — its option list is
+`%standard-build-options` only, without the native or cross additions that
+`guix system` and `guix pull` get. There is no way to ask it for an aarch64
+home environment from the box, which is why the Makefile has no box-side
+`reform/home` target.
+
+Two ways around it, if the Reform's home environment turns out to be slow to
+build there:
+
+- Prebuild the *packages* rather than the environment. `guix build
+  --system=aarch64-linux emacs firefox …` puts the same store items in the
+  box's store, and `guix publish` serves them; the Reform's `guix home build`
+  then downloads instead of building. Clumsy, but it is the same store paths.
+- Just run `make reform/home/build` on the Reform and let it work. Guix Home
+  is already running there on Debian today, so this is the path you know.
+
+Be aware that the desktop-application half of the closure is where aarch64
+substitute coverage is thinnest — `firefox` and `libreoffice` are built from
+source in Guix, and nonguix's substitute server does not serve aarch64. That
+part is unmeasured here; check it with `guix weather` on the Reform before
+assuming it is a download.

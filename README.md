@@ -34,11 +34,17 @@ make box/home/reconfigure
 # mintsystem (HP laptop) — home environment
 make mintsystem/home/reconfigure
 
-# reform (MNT Reform, aarch64) — built on box, never on the Reform itself
-make reform/system/dry-run        # cross-compile check
-make reform/system/cross-build    # config validation
-make reform/system/native-build   # what the Reform actually downloads (needs qemu binfmt)
-make reform/weather               # substitute coverage for the kernel
+# reform (MNT Reform, aarch64) — run these ON the Reform
+make reform/system/dry-run        # check nothing big would be built
+make reform/system/build
+make reform/system/init           # install onto the NVMe mounted at /mnt
+make reform/system/reconfigure    # once it boots from NVMe
+make reform/home/build
+
+# reform — run these on box, to prebuild for the Reform
+make reform/weather               # aarch64 substitute coverage for the kernel
+make reform/system/emulated-build # produces what the Reform downloads (needs qemu binfmt)
+make reform/system/cross-dry-run  # structural check only; cross does not build
 ```
 
 Installing the Reform: [doc/reform-build-box.md](doc/reform-build-box.md)
