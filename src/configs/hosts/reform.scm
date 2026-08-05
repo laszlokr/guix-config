@@ -1,9 +1,12 @@
 (define-module (configs hosts reform)
   #:use-module (gnu bootloader)
   #:use-module (gnu bootloader extlinux)
+  #:use-module (gnu packages firmware)
   #:use-module (gnu packages linux)
   #:use-module (gnu services)
   #:use-module (gnu services ssh)
+  #:use-module (gnu services virtualization)
+  #:use-module (gnu system)
   #:use-module (gnu system file-systems)
   #:use-module (gnu system linux-initrd)
   #:use-module (srfi srfi-1)
@@ -153,12 +156,43 @@
              (permit-root-login 'prohibit-password)))))
 
 
+;;; Architecture fixup applied after the features are folded
+;;
+;; rde's feature-qemu instantiates libvirt-service-type with its default
+;; configuration, whose `firmwares' field is (list ovmf-x86-64) -- x86 UEFI
+;; firmware for guest VMs.  On aarch64 that package does not build: EDK2's
+;; X64 modules end up compiled by the native aarch64 gcc, which rejects the
+;; x86 flags EDK2 passes ("gcc: error: unrecognized command-line option
+;; '-m64'", likewise -mno-red-zone, -mno-mmx, -maccumulate-outgoing-args),
+;; and no substitute server has an aarch64 build of it.  Left alone it makes
+;; the entire system closure unbuildable.
+;;
+;; feature-qemu does not expose the libvirt configuration, so swap the
+;; firmware in afterwards.  ovmf-aarch64 is upstream in (gnu packages
+;; firmware) and is fully substitutable for aarch64 (~1 MiB) -- and it is
+;; the firmware this machine's guests would actually want anyway.
+
+(define-public (reform-operating-system config)
+  "Return the <operating-system> for CONFIG, an <rde-config>, with the
+architecture fixups this host needs."
+  (let ((os (rde-config-operating-system config)))
+    (operating-system
+     (inherit os)
+     (services
+      (modify-services (operating-system-user-services os)
+        (libvirt-service-type
+         libvirt-config =>
+         (libvirt-configuration
+          (inherit libvirt-config)
+          (firmwares (list ovmf-aarch64)))))))))
+
+
 ;;; Host-specific features
 ;;
 ;; Everything else -- the whole rde feature set -- comes from
-;; %laszlokr-features.  Note that configs.scm must drop that set's
-;; `kernel' feature for this host: rde throws on duplicate feature values,
-;; and the shared one pins the x86 nonguix kernel.
+;; %laszlokr-features.  configs.scm drops exactly one of its features for
+;; this host: `kernel', which pins the x86 nonguix kernel (and rde throws on
+;; duplicate feature values).
 
 (define-public %reform-features
   (list

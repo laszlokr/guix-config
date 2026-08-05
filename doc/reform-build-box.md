@@ -119,13 +119,19 @@ on both ci.guix.gnu.org and bordeaux** (31.6 MB for
 expensive at all. The whole `reform-system` closure needs only three
 derivations built; everything else downloads.
 
-The one item with **no aarch64 substitute anywhere** is `ovmf-x86-64`, pulled
-in by `feature-qemu` in `users/laszlokr.scm`. It is an EDK2 + OpenSSL build,
-and under emulation it is the single slowest thing in the closure — for x86
-UEFI firmware, on a 4 GB ARM laptop that is unlikely to run x86 VMs. If you
-want the Reform's builds cheap, dropping `feature-qemu` for this host is the
-one change worth considering; it is left in so the host keeps your standard
-feature set.
+One item had no aarch64 substitute anywhere and, it turned out, cannot be
+built for aarch64 at all: `ovmf-x86-64`, which `libvirt-service-type` names
+in its default `firmwares` field and which `feature-qemu` therefore drags in.
+EDK2 compiles its X64 modules with the native aarch64 gcc, which rejects
+`-m64` / `-mno-red-zone` / `-mno-mmx`, and the build dies. `hosts/reform.scm`
+swaps in `ovmf-aarch64` (upstream, ~1 MiB, fully substitutable) after the
+features are folded, so `feature-qemu` stays in the host's feature set and
+the closure builds.
+
+Worth remembering as a pattern: an x86 default buried in a service's
+configuration is the kind of thing that only shows up when you actually build
+for the target architecture. The dry-run does not catch it — it computes the
+derivation happily.
 
 ## 3. Signing key on the box
 

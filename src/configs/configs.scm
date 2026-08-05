@@ -34,7 +34,7 @@
 ;; %laszlokr-features pins the x86 nonguix kernel, and rde raises on
 ;; duplicate feature values, so the shared 'kernel feature is dropped here
 ;; and %reform-features supplies the MNT Reform arm64 kernel instead.
-(define %laszlokr-features/no-kernel
+(define %laszlokr-features/reform
   (remove (lambda (f) (eq? (feature-name f) 'kernel)) %laszlokr-features))
 
 (define-public reform-config
@@ -42,10 +42,13 @@
    (features
     (append
      %reform-features
-     %laszlokr-features/no-kernel))))
+     %laszlokr-features/reform))))
 
+;; Not rde-config-operating-system directly: this host needs one
+;; architecture fixup applied after the features are folded.  See
+;; hosts/reform.scm.
 (define-public reform-os
-  (rde-config-operating-system reform-config))
+  (reform-operating-system reform-config))
 
 (define-public reform-he
   (rde-config-home-environment reform-config))
