@@ -183,19 +183,21 @@
    home-sway-service-type
    ;; Three displays, 4K landscape in the middle flanked by two portrait ones.
    ;;
-   ;;   DP-2      left,   1920x1080 rotated counter-clockwise -> 1080x1920
+   ;;   HDMI-A-1  left,   1920x1080 rotated clockwise         -> 1080x1920
    ;;   HDMI-A-2  centre, 3840x2160 landscape
-   ;;   HDMI-A-1  right,  1920x1080 rotated clockwise         -> 1080x1920
+   ;;   DP-2      right,  1920x1080 rotated counter-clockwise -> 1080x1920
    ;;
    ;; Positions are in post-rotation layout coordinates, so the rotated panels
    ;; are 1080 wide, not 1920:  0 | 1080..4920 | 4920.
    ;; The portrait monitors are offset by y=120 to centre them against the
    ;; 2160-tall middle screen ((2160 - 1920) / 2); set y=0 to top-align instead.
    ;;
-   ;; If a panel comes up upside down, swap 90 and 270 on that output.
-   `((output DP-2 pos 0 120 res 1920x1080 transform 270)
+   ;; Rotation direction (90/270) is confirmed correct per-panel; only swap
+   ;; those if a specific panel comes up upside down again.  Position (left vs
+   ;; right) is what moved here -- HDMI-A-1 is the left panel, DP-2 the right.
+   `((output HDMI-A-1 pos 0 120 res 1920x1080 transform 90)
      (output HDMI-A-2 pos 1080 0 res 3840x2160)
-     (output HDMI-A-1 pos 4920 120 res 1920x1080 transform 90)
+     (output DP-2 pos 4920 120 res 1920x1080 transform 270)
      ,@(map (lambda (x) `(workspace ,x output HDMI-A-2)) (iota 8 1))
 
      ;; (workspace 9 output DP-2)
