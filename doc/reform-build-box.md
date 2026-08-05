@@ -111,10 +111,21 @@ guix weather --system=aarch64-linux \
      linux-libre-arm64-mnt-reform
 ```
 
-Whatever `guix weather` reports as available is a download, not a build.  The
-MNT Reform kernel is the expensive one: if it has no aarch64 substitute you
-are looking at an emulated kernel build on the box (hours), which is exactly
-the work being moved off the Reform.
+Whatever `guix weather` reports as available is a download, not a build.
+
+Measured at the pinned channels: the kernel is **100% available for aarch64
+on both ci.guix.gnu.org and bordeaux** (31.6 MB for
+`linux-libre-arm64-mnt-reform-7.0.14`), so the feared expensive item is not
+expensive at all. The whole `reform-system` closure needs only three
+derivations built; everything else downloads.
+
+The one item with **no aarch64 substitute anywhere** is `ovmf-x86-64`, pulled
+in by `feature-qemu` in `users/laszlokr.scm`. It is an EDK2 + OpenSSL build,
+and under emulation it is the single slowest thing in the closure — for x86
+UEFI firmware, on a 4 GB ARM laptop that is unlikely to run x86 VMs. If you
+want the Reform's builds cheap, dropping `feature-qemu` for this host is the
+one change worth considering; it is left in so the host keeps your standard
+feature set.
 
 ## 3. Signing key on the box
 
