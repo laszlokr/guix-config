@@ -1,18 +1,18 @@
 (define-module (configs hosts reform)
   #:use-module (gnu bootloader)
   #:use-module (gnu bootloader extlinux)
-  #:use-module (gnu packages firmware)
   #:use-module (gnu packages linux)
   #:use-module (gnu services)
   #:use-module (gnu services ssh)
-  #:use-module (gnu services virtualization)
   #:use-module (gnu system)
   #:use-module (gnu system file-systems)
+  #:use-module (gnu system shadow)
   #:use-module (gnu system linux-initrd)
   #:use-module (srfi srfi-1)
   #:use-module (rde features)
   #:use-module (rde features base)
-  #:use-module (rde features system))
+  #:use-module (rde features system)
+  #:use-module (rde system services accounts))
 
 ;;; MNT Reform with a Banana Pi CM4 module (Amlogic A311D, aarch64).
 ;;;
@@ -158,19 +158,45 @@
 
 ;;; Architecture fixup applied after the features are folded
 ;;
-;; rde's feature-qemu instantiates libvirt-service-type with its default
-;; configuration, whose `firmwares' field is (list ovmf-x86-64) -- x86 UEFI
-;; firmware for guest VMs.  On aarch64 that package does not build: EDK2's
-;; X64 modules end up compiled by the native aarch64 gcc, which rejects the
-;; x86 flags EDK2 passes ("gcc: error: unrecognized command-line option
-;; '-m64'", likewise -mno-red-zone, -mno-mmx, -maccumulate-outgoing-args),
-;; and no substitute server has an aarch64 build of it.  Left alone it makes
-;; the entire system closure unbuildable.
+;; This host does not run VMs -- 4 GB of RAM -- so configs.scm drops the
+;; shared feature set's `qemu' feature.  That also sidesteps a hard
+;; aarch64 blocker, worth recording since it is invisible until you build:
 ;;
-;; feature-qemu does not expose the libvirt configuration, so swap the
-;; firmware in afterwards.  ovmf-aarch64 is upstream in (gnu packages
-;; firmware) and is fully substitutable for aarch64 (~1 MiB) -- and it is
-;; the firmware this machine's guests would actually want anyway.
+;;   feature-qemu instantiates libvirt-service-type, whose `firmwares'
+;;   field defaults to (list ovmf-x86-64).  ovmf-x86-64 does not build on
+;;   aarch64 -- EDK2 compiles its X64 modules with the native aarch64 gcc,
+;;   which rejects the x86 flags it passes ("gcc: error: unrecognized
+;;   command-line option '-m64'", likewise -mno-red-zone, -mno-mmx,
+;;   -maccumulate-outgoing-args) -- and no substitute server carries an
+;;   aarch64 build of it.  Nor can the field simply be pointed at
+;;   ovmf-aarch64: libvirt builds /etc/qemu/firmware by union-ing
+;;   <pkg>/share/qemu/firmware, and ovmf-x86-64 is the only package in guix
+;;   that installs that directory, so the union's opendir fails.  Anyone
+;;   reviving virtualization here would have to set `firmwares' to '().
+;;
+;; Dropping the feature leaves the "libvirt" group undeclared -- it was
+;; libvirt-service-type that declared it -- while feature-user-info in the
+;; shared user config still lists it among laszlokr's supplementary groups.
+;; `guix system' rejects that outright: "supplementary group 'libvirt' of
+;; user 'laszlokr' is undeclared".
+;;
+;; Rather than fork feature-user-info for this one host (it also carries the
+;; name, email and password hash), filter the group out of the account after
+;; the features are folded.  rde attaches the user through
+;; rde-account-service-type rather than the operating-system `users' field,
+;; so the account is reached with modify-services.
+
+(define %reform-absent-groups
+  ;; Supplementary groups the shared user config asks for that no service on
+  ;; this host declares.
+  '("libvirt"))
+
+(define (drop-absent-groups account)
+  (user-account
+   (inherit account)
+   (supplementary-groups
+    (remove (lambda (group) (member group %reform-absent-groups))
+            (user-account-supplementary-groups account)))))
 
 (define-public (reform-operating-system config)
   "Return the <operating-system> for CONFIG, an <rde-config>, with the
@@ -180,11 +206,7 @@ architecture fixups this host needs."
      (inherit os)
      (services
       (modify-services (operating-system-user-services os)
-        (libvirt-service-type
-         libvirt-config =>
-         (libvirt-configuration
-          (inherit libvirt-config)
-          (firmwares (list ovmf-aarch64)))))))))
+        (rde-account-service-type account => (drop-absent-groups account)))))))
 
 
 ;;; Host-specific features

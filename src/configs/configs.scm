@@ -31,11 +31,20 @@
 ;; full Guix system on NVMe.  Same feature set as the other hosts; only the
 ;; hardware bits differ.
 ;;
-;; %laszlokr-features pins the x86 nonguix kernel, and rde raises on
-;; duplicate feature values, so the shared 'kernel feature is dropped here
-;; and %reform-features supplies the MNT Reform arm64 kernel instead.
+;; Two features from the shared set are dropped for this host:
+;;
+;;   kernel — pins the x86 nonguix kernel, and rde raises on duplicate
+;;     feature values, so %reform-features supplies the MNT Reform arm64
+;;     kernel instead.
+;;
+;;   qemu — no VMs on this machine; 4 GB of RAM.  Dropping it also avoids
+;;     ovmf-x86-64, which cannot be built for aarch64 at all; see the
+;;     comment in hosts/reform.scm.
+(define %reform-dropped-features '(kernel qemu))
+
 (define %laszlokr-features/reform
-  (remove (lambda (f) (eq? (feature-name f) 'kernel)) %laszlokr-features))
+  (remove (lambda (f) (memq (feature-name f) %reform-dropped-features))
+          %laszlokr-features))
 
 (define-public reform-config
   (rde-config

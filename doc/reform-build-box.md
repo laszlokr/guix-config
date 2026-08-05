@@ -119,19 +119,28 @@ on both ci.guix.gnu.org and bordeaux** (31.6 MB for
 expensive at all. The whole `reform-system` closure needs only three
 derivations built; everything else downloads.
 
-One item had no aarch64 substitute anywhere and, it turned out, cannot be
-built for aarch64 at all: `ovmf-x86-64`, which `libvirt-service-type` names
-in its default `firmwares` field and which `feature-qemu` therefore drags in.
-EDK2 compiles its X64 modules with the native aarch64 gcc, which rejects
-`-m64` / `-mno-red-zone` / `-mno-mmx`, and the build dies. `hosts/reform.scm`
-swaps in `ovmf-aarch64` (upstream, ~1 MiB, fully substitutable) after the
-features are folded, so `feature-qemu` stays in the host's feature set and
-the closure builds.
+What `guix weather` cannot tell you is that one item does not merely lack a
+substitute — it cannot be built for aarch64 at all. `ovmf-x86-64` is named in
+`libvirt-service-type`'s default `firmwares` field, so `feature-qemu` drags
+it into the closure; EDK2 then compiles its X64 modules with the native
+aarch64 gcc, which rejects `-m64` / `-mno-red-zone` / `-mno-mmx`, and the
+build dies. Pointing the field at `ovmf-aarch64` does not help either:
+libvirt builds `/etc/qemu/firmware` by union-ing `<pkg>/share/qemu/firmware`,
+and `ovmf-x86-64` is the only package in guix that installs that directory,
+so the union's `opendir` fails.
 
-Worth remembering as a pattern: an x86 default buried in a service's
-configuration is the kind of thing that only shows up when you actually build
-for the target architecture. The dry-run does not catch it — it computes the
-derivation happily.
+The Reform has 4 GB of RAM and is not going to run VMs, so `configs.scm`
+drops `feature-qemu` for this host outright — which also takes libvirt,
+virt-manager and their closures out of a machine that has no use for them.
+
+Two things worth remembering from this. An x86 default buried in a service's
+configuration only shows up when you build for the target architecture — the
+dry-run computes the derivation happily. And the ~220 system-glue derivations
+(shepherd `.go` files, `etc`, activation scripts) are never substitutable
+from anywhere: they are specific to your service graph, so they get built
+under emulation on the box, or natively on the Reform. They are Guile
+compiles rather than C, which is why they are feasible on the Reform at all —
+but they are also why the box is worth having.
 
 ## 3. Signing key on the box
 
