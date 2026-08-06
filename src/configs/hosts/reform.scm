@@ -158,6 +158,32 @@
     "dm-crypt"))                        ;leaves room for a LUKS root later
 
 
+;;; Kernel command line
+;;
+;; Taken from what MNT's own U-Boot passes on this machine -- read out of
+;; the bootloader's compiled-in environment on the SD card:
+;;
+;;   bootargs=ro no_console_suspend console=ttyAML0,115200 pci=pcie_bus_perf \
+;;            libata.force=noncq nvme_core.default_ps_max_latency_us=0 console=tty1
+;;
+;; Guix supplies its own --root=/--system= arguments, and `ro' is the
+;; initrd's business, so only the hardware-relevant ones are carried over.
+;; libata.force=noncq is dropped too: there is no SATA on this machine.
+
+(define %reform-kernel-arguments
+  (list
+   ;; The A311D's serial console, same port U-Boot uses (S2, 115200); tty1
+   ;; keeps output on the internal panel as well.
+   "console=ttyAML0,115200"
+   "console=tty1"
+   ;; Without this the NVMe drops off the bus when it enters a deep APST
+   ;; power state -- MNT ship it by default on this platform.
+   "nvme_core.default_ps_max_latency_us=0"
+   "pci=pcie_bus_perf"
+   ;; Keep console output alive across suspend, for debugging early boot.
+   "no_console_suspend"))
+
+
 ;;; Host-specific services
 
 (define reform-custom-services
@@ -240,6 +266,7 @@ architecture fixups this host needs."
    (feature-kernel
     #:kernel linux-libre-arm64-mnt-reform
     #:firmware (list (@ (nongnu packages linux) linux-firmware))
-    #:base-initrd-modules %reform-initrd-modules)
+    #:base-initrd-modules %reform-initrd-modules
+    #:kernel-arguments %reform-kernel-arguments)
    (feature-custom-services
     #:system-services reform-custom-services)))
