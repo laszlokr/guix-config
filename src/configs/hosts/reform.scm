@@ -119,30 +119,27 @@
 ;; the platter.  A single LUKS container holds both, so it is one
 ;; passphrase at boot.
 ;;
-;; TODO(laszlo): replace the placeholder UUIDs below with the real ones,
-;; read *after* partitioning and formatting:
+;; The UUIDs below are the real ones from the installed disk.  If the
+;; drive is ever reformatted, re-read them with:
 ;;
 ;;     sudo blkid /dev/nvme0n1p1        # root, the "ext4" UUID
 ;;     sudo blkid /dev/nvme0n1p2        # the LUKS *container* UUID
 ;;
-;; For the LUKS device use the UUID of the crypto_LUKS partition itself,
-;; not of the ext4 inside it.  They are syntactically valid so the config
-;; still evaluates and builds -- an unparseable placeholder would break
-;; `guix system build' and defeat the point of checking the config.
-;; Forgetting to replace them is caught: `guix system init', run as root,
-;; calls check-file-system-availability and refuses to install when a UUID
-;; does not resolve to a real device.
+;; and note the second is the crypto_LUKS partition itself, not the ext4
+;; inside it.  `guix system init' run as root calls
+;; check-file-system-availability, so a stale UUID fails loudly at install
+;; time rather than at boot.
 ;;
-;; Format the root file system with U-Boot-compatible options; see
-;; doc/reform-install.md.
+;; The root file system must be made with U-Boot-compatible feature flags
+;; (-O ^metadata_csum_seed,^orphan_file); see doc/reform-install.md.
 
 (define %reform-root-uuid
-  ;; TODO(laszlo): PLACEHOLDER -- real UUID of /dev/nvme0n1p1 (ext4)
-  (uuid "00000000-0000-0000-0000-000000000001"))
+  ;; /dev/nvme0n1p1, ext4, label "guix-root"
+  (uuid "5949e666-5bb5-439c-ada1-6bdaba9928bb"))
 
 (define %reform-luks-uuid
-  ;; TODO(laszlo): PLACEHOLDER -- real UUID of /dev/nvme0n1p2 (crypto_LUKS)
-  (uuid "00000000-0000-0000-0000-000000000002"))
+  ;; /dev/nvme0n1p2, the crypto_LUKS *container* -- not the ext4 inside it
+  (uuid "17ea655c-8cfe-4c2f-af28-cc87af93f805"))
 
 (define reform-mapped-devices
   ;; Neither of these is needed-for-boot: root is plain ext4, so the initrd
