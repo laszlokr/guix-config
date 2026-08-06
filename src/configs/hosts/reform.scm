@@ -6,6 +6,7 @@
   #:use-module (gnu services ssh)
   #:use-module (gnu system)
   #:use-module (gnu system file-systems)
+  #:use-module (gnu system mapped-devices)
   #:use-module (gnu system shadow)
   #:use-module (srfi srfi-1)
   #:use-module (rde features)
@@ -70,11 +71,23 @@
    ;; mount point under which extlinux.conf is written.  It must be on
    ;; the NVMe, never the SD card.
    ;;
-   ;; IMPORTANT: /boot must live on the root file system, not on a
-   ;; separate partition.  extlinux.conf references the kernel and initrd
-   ;; by absolute /gnu/store/... path, and U-Boot resolves those paths on
-   ;; the same partition it loaded extlinux.conf from.  A separate /boot
-   ;; partition would make U-Boot look for /gnu/store there and fail.
+   ;; IMPORTANT: /boot must live on the root file system -- not on a
+   ;; separate partition, and not on an encrypted one.  extlinux.conf
+   ;; references the kernel and initrd by absolute /gnu/store/... path,
+   ;; and U-Boot resolves those paths on the partition it loaded
+   ;; extlinux.conf from.  A separate /boot would send it looking for
+   ;; /gnu/store on a partition that does not have it; an encrypted root
+   ;; would put the store somewhere U-Boot cannot read at all.
+   ;;
+   ;; This machine's U-Boot can reach the NVMe -- its compiled-in
+   ;; environment has the full nvme command set, bootcmd_nvme0 and PCIe
+   ;; enumeration:
+   ;;
+   ;;   boot_targets=romusb mmc0 mmc1 mmc2 usb0 nvme0 pxe dhcp
+   ;;   U-Boot 2024.04-dirty (Oct 11 2024) bpi-cm4-mnt-reform2
+   ;;
+   ;; but note nvme0 is tried *after* the mmc targets, so the SD card wins
+   ;; until boot_targets is reordered and saved from the U-Boot prompt.
    (targets (list "/boot"))
    ;; Emits "FDTDIR <kernel>/lib/dtbs" so U-Boot picks the device tree
    ;; named by its own $fdtfile -- meson-g12b-bananapi-cm4-mnt-reform2.dtb
@@ -84,33 +97,85 @@
    (timeout 3)))
 
 
-;;; File systems
+;;; Storage layout
+;;
+;;   nvme0n1p1  ext4                        /        (unencrypted)
+;;   nvme0n1p2  LUKS2 -> LVM "reformdata" ┬ /home
+;;                                        └ swap
+;;
+;; The root partition is deliberately NOT encrypted, and that is forced by
+;; the bootloader, not by preference.  U-Boot cannot decrypt LUKS, and
+;; extlinux.conf names the kernel and initrd by absolute /gnu/store/...
+;; path which U-Boot resolves on the partition it read the config from.
+;; So the kernel, the initrd and the store must all sit on one partition
+;; U-Boot can read.  Encrypt the store and `guix system reconfigure' stops
+;; being self-contained: every generation would need its kernel copied out
+;; to a readable partition by hand, and rollback would stop being a
+;; boot-menu choice.
+;;
+;; What that leaves readable to someone holding the disk: the package
+;; list, /etc, and the system logs.  What stays encrypted: /home -- the
+;; documents, keys and mail -- and swap, so memory contents do not leak to
+;; the platter.  A single LUKS container holds both, so it is one
+;; passphrase at boot.
 ;;
 ;; TODO(laszlo): replace the placeholder UUIDs below with the real ones,
-;; read on the running Debian *after* formatting the NVMe:
+;; read *after* partitioning and formatting:
 ;;
-;;     sudo blkid /dev/nvme0n1p1
+;;     sudo blkid /dev/nvme0n1p1        # root, the "ext4" UUID
+;;     sudo blkid /dev/nvme0n1p2        # the LUKS *container* UUID
 ;;
-;; They are syntactically valid so that the configuration still evaluates
-;; and builds (an unparseable placeholder would break `guix system build'
-;; and defeat the point of checking the config).  Forgetting to replace
-;; them is caught: `guix system init', run as root, calls
-;; check-file-system-availability and refuses to install when the UUID
+;; For the LUKS device use the UUID of the crypto_LUKS partition itself,
+;; not of the ext4 inside it.  They are syntactically valid so the config
+;; still evaluates and builds -- an unparseable placeholder would break
+;; `guix system build' and defeat the point of checking the config.
+;; Forgetting to replace them is caught: `guix system init', run as root,
+;; calls check-file-system-availability and refuses to install when a UUID
 ;; does not resolve to a real device.
 ;;
 ;; Format the root file system with U-Boot-compatible options; see
 ;; doc/reform-install.md.
 
 (define %reform-root-uuid
-  ;; TODO(laszlo): PLACEHOLDER -- real UUID of /dev/nvme0n1p1
+  ;; TODO(laszlo): PLACEHOLDER -- real UUID of /dev/nvme0n1p1 (ext4)
   (uuid "00000000-0000-0000-0000-000000000001"))
+
+(define %reform-luks-uuid
+  ;; TODO(laszlo): PLACEHOLDER -- real UUID of /dev/nvme0n1p2 (crypto_LUKS)
+  (uuid "00000000-0000-0000-0000-000000000002"))
+
+(define reform-mapped-devices
+  ;; Neither of these is needed-for-boot: root is plain ext4, so the initrd
+  ;; never touches them.  They are opened later in the boot sequence, which
+  ;; also means a mistyped passphrase costs you /home and swap, not the
+  ;; system -- you still get a shell.
+  (list
+   (mapped-device
+    (source %reform-luks-uuid)
+    (target "reformdata-crypt")
+    (type luks-device-mapping))
+   (mapped-device
+    (source "reformdata")
+    (targets (list "reformdata-home" "reformdata-swap"))
+    (type lvm-device-mapping))))
 
 (define reform-file-systems
   (list
    (file-system
     (mount-point "/")
     (device %reform-root-uuid)
-    (type "ext4"))))
+    (type "ext4"))
+   (file-system
+    (mount-point "/home")
+    (device "/dev/mapper/reformdata-home")
+    (type "ext4")
+    (dependencies reform-mapped-devices))))
+
+(define reform-swap-devices
+  (list
+   (swap-space
+    (target "/dev/mapper/reformdata-swap")
+    (dependencies reform-mapped-devices))))
 
 
 ;;; Kernel
@@ -262,7 +327,9 @@ architecture fixups this host needs."
    (feature-bootloader
     #:bootloader-configuration reform-bootloader-configuration)
    (feature-file-systems
-    #:file-systems reform-file-systems)
+    #:file-systems reform-file-systems
+    #:mapped-devices reform-mapped-devices
+    #:swap-devices reform-swap-devices)
    (feature-kernel
     #:kernel linux-libre-arm64-mnt-reform
     #:firmware (list (@ (nongnu packages linux) linux-firmware))
