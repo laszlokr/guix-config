@@ -295,14 +295,42 @@ Afterwards, sanity-check what it wrote:
 sudo cat /mnt/boot/extlinux/extlinux.conf
 ```
 
-You should see `LABEL`, a `KERNEL /gnu/store/…-linux-libre-arm64-mnt-reform-…/Image`,
-`FDTDIR …/lib/dtbs`, `INITRD …`, and an `APPEND` line with
-`--root=UUID=<your UUID>`. Confirm the store paths under `/mnt/gnu/store`
-exist:
+It should look like this (verified by generating it on the build host):
 
-```sh
-sudo ls -d /mnt$(awk '/KERNEL/ {print $2}' /mnt/boot/extlinux/extlinux.conf | head -1 | xargs dirname)
 ```
+UI menu.c32
+MENU TITLE GNU Guix Boot Options
+PROMPT 1
+TIMEOUT 30
+LABEL GNU with Linux-Libre-Arm64-Mnt-Reform 7.0.14
+  KERNEL /gnu/store/...-linux-libre-arm64-mnt-reform-7.0.14/Image
+  FDTDIR /gnu/store/...-linux-libre-arm64-mnt-reform-7.0.14/lib/dtbs
+  INITRD /gnu/store/...-raw-initrd/initrd.cpio.gz
+  APPEND root=<your root UUID> gnu.system=/gnu/store/...-system \
+         gnu.load=/gnu/store/...-system/boot console=ttyAML0,115200 ... quiet
+```
+
+Check three things:
+
+- `root=` carries **your** UUID, not the placeholder.  (Note the spelling:
+  Guix emits a bare `root=<uuid>`, not `--root=UUID=...`.)
+- `KERNEL` and `INITRD` are absolute store paths — and they must exist under
+  `/mnt`, because U-Boot resolves them on this same partition:
+
+  ```sh
+  sudo ls -l /mnt$(awk '/KERNEL/ {print $2}' /mnt/boot/extlinux/extlinux.conf | head -1)
+  sudo ls -l /mnt$(awk '/INITRD/ {print $2}' /mnt/boot/extlinux/extlinux.conf | head -1)
+  ```
+
+- `TIMEOUT 30` means three seconds, not thirty — the unit is tenths.
+
+`UI menu.c32` refers to a syslinux module that will not be present, because
+this host installs no bootloader code.  That is expected and harmless: every
+upstream Guix ARM image generates the same line, and U-Boot ignores it.
+
+If the first boot is opaque, drop `quiet` from the kernel arguments — it comes
+from rde's defaults and hides exactly the messages you want when a LUKS prompt
+or a root-device failure is the thing you are diagnosing.
 
 ## 8. First boot — SD card stays in
 
