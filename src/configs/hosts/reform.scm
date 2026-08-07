@@ -234,16 +234,22 @@
 
 (define %reform-kernel-arguments
   (list
-   ;; The A311D's serial console, same port U-Boot uses (S2, 115200); tty1
-   ;; keeps output on the internal panel as well.
+   ;; The A311D's serial console, same port U-Boot uses (S2, 115200).
    "console=ttyAML0,115200"
-   "console=tty1"
    ;; Without this the NVMe drops off the bus when it enters a deep APST
    ;; power state -- MNT ship it by default on this platform.
    "nvme_core.default_ps_max_latency_us=0"
    "pci=pcie_bus_perf"
    ;; Keep console output alive across suspend, for debugging early boot.
-   "no_console_suspend"))
+   "no_console_suspend"
+   ;; MUST be the LAST console= argument (see flash-kernel's own
+   ;; /usr/share/flash-kernel/ubootenv.d/00reform2_ubootenv on this
+   ;; machine): the kernel treats the last-registered console as primary,
+   ;; and that is where interactive prompts -- specifically the /home LUKS
+   ;; passphrase prompt at boot -- get shown.  Putting it anywhere earlier
+   ;; risks that prompt landing on the serial line instead of the internal
+   ;; panel, which is unusable without a UART cable connected.
+   "console=tty1"))
 
 
 ;;; Host-specific services
