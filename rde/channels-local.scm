@@ -1,6 +1,3 @@
-(use-modules (guix ci)
-             (guix channels))
-
 (list
  (channel
   (name 'guix)
