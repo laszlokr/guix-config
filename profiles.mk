@@ -29,12 +29,21 @@ target/profiles/guix-local: target/profiles rde/channels-lock-local.scm
 # pre-injected, and `use-modules' is deliberately NOT available.  Emitting
 # that header makes every `guix pull -C' fail with
 # "use-modules: unbound variable".
-rde/channels-lock.scm: rde/channels.scm
+# NOTE: deliberately no prerequisite on rde/channels.scm.  As an mtime
+# dependency it fires on any checkout or pull that touches channels.scm,
+# silently regenerating the lock file from the *unpinned* channel list and
+# thereby discarding the pinned commits -- you then pull whatever master is
+# today.  That is how the Reform ended up on guix c47f65b instead of the
+# pinned 8db8515, which surfaced as an unrelated-looking guile-fibers
+# profile conflict.  Regenerate explicitly when you actually mean to:
+#
+#     make -B rde/channels-lock.scm
+rde/channels-lock.scm:
 	guix time-machine -C ./rde/channels.scm -- \
 	describe -f channels > ./rde/channels-lock-tmp.scm
 	mv ./rde/channels-lock-tmp.scm ./rde/channels-lock.scm
 
-rde/channels-lock-local.scm: rde/channels-local.scm
+rde/channels-lock-local.scm:
 	guix time-machine -C ./rde/channels-local.scm -- \
 	describe -f channels > ./rde/channels-lock-tmp.scm
 	mv ./rde/channels-lock-tmp.scm ./rde/channels-lock-local.scm
