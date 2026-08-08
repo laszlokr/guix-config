@@ -31,7 +31,7 @@
 ;; full Guix system on NVMe.  Same feature set as the other hosts; only the
 ;; hardware bits differ.
 ;;
-;; Two features from the shared set are dropped for this host:
+;; Three features from the shared set are dropped for this host:
 ;;
 ;;   kernel — pins the x86 nonguix kernel, and rde raises on duplicate
 ;;     feature values, so %reform-features supplies the MNT Reform arm64
@@ -40,7 +40,16 @@
 ;;   qemu — no VMs on this machine; 4 GB of RAM.  Dropping it also avoids
 ;;     ovmf-x86-64, which cannot be built for aarch64 at all; see the
 ;;     comment in hosts/reform.scm.
-(define %reform-dropped-features '(kernel qemu))
+;;
+;;   ungoogled-chromium — has *no* aarch64 substitute on bordeaux (measured:
+;;     0.0% available, versus 100% for librewolf and icecat), so `guix home
+;;     reconfigure' silently drops into compiling Chromium from source.  On a
+;;     4 GB A311D that is a many-hour build that will most likely be OOM-killed
+;;     before it finishes.  librewolf stays and remains fully substitutable,
+;;     so this host still has a browser.  Re-check with:
+;;
+;;       guix weather --system=aarch64-linux ungoogled-chromium
+(define %reform-dropped-features '(kernel qemu ungoogled-chromium))
 
 (define %laszlokr-features/reform
   (remove (lambda (f) (memq (feature-name f) %reform-dropped-features))
