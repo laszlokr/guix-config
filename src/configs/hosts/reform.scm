@@ -1,8 +1,10 @@
 (define-module (configs hosts reform)
   #:use-module (gnu bootloader)
   #:use-module (gnu bootloader extlinux)
+  #:use-module (gnu packages glib)
   #:use-module (gnu packages linux)
   #:use-module (gnu services)
+  #:use-module (gnu services base)
   #:use-module (gnu services ssh)
   #:use-module (gnu system)
   #:use-module (gnu system file-systems)
@@ -259,7 +261,28 @@
    (service openssh-service-type
             (openssh-configuration
              (password-authentication? #f)
-             (permit-root-login 'prohibit-password)))))
+             (permit-root-login 'prohibit-password)))
+   ;; rde's greetd sway session wraps the compositor in `dbus-run-session'
+   ;; (see (rde system services greetd) greetd-login-session-with-dbus):
+   ;;
+   ;;   execl <dbus>/bin/dbus-run-session <dbus>/bin/dbus-run-session -- sway
+   ;;
+   ;; `dbus-run-session' itself is found fine, by absolute store path.  But
+   ;; internally it spawns the *session* bus by searching plain $PATH for
+   ;; "dbus-daemon" -- it is never given an absolute path, and nothing put
+   ;; dbus on $PATH system-wide.  The *system* bus works regardless (the
+   ;; dbus-system shepherd service references the package directly, no
+   ;; $PATH needed), which is why NetworkManager/PolicyKit are fine while
+   ;; every graphical login fails immediately with:
+   ;;
+   ;;   dbus-run-session: failed to execute message bus daemon
+   ;;   'dbus-daemon': No such file or directory
+   ;;
+   ;; Adding dbus to the system profile puts its bin/ on the default
+   ;; PATH, which is all dbus-run-session needs to find it.
+   (simple-service 'reform-dbus-on-path
+                   profile-service-type
+                   (list dbus))))
 
 
 ;;; Architecture fixup applied after the features are folded
