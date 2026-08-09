@@ -10,7 +10,9 @@
   #:use-module (rde features)
   #:use-module (rde features base)
   #:use-module (rde features system)
-  #:use-module (rde features wm))
+  #:use-module (rde features wm)
+  #:use-module (rosenthal packages networking)
+  #:use-module (rosenthal services networking))
 
 
 ;;; Host-specific file systems
@@ -112,10 +114,37 @@
                (port 3001)
                (compression '(("zstd" 3)))
                (advertise? #f)
-               (ttl (* 30 24 3600))))))
-   (feature-box-podman-compose)
+               (ttl (* 30 24 3600))))
+     ;; SECURITY: the real config holds a trojan password and a vmess UUID.
+     ;; Anything in the store is world-readable, so it is NOT generated from
+     ;; this file -- config-file is a bare path string (rosenthal's
+     ;; file-object? accepts one alongside actual file-like objects for
+     ;; exactly this reason), created by hand at
+     ;;
+     ;;     /etc/sing-box/config.json      root:root, chmod 0600
+     ;;
+     ;; from the credential-free template at files/sing-box/config.template.json.
+     ;; Same setup as reform; see hosts/reform.scm.
+     (service sing-box-service-type
+              (sing-box-configuration
+               (config-file "/etc/sing-box/config.json")))))
+   ;; Compose stacks are started by hand while the system is up, so the
+   ;; boot-time Shepherd services are not wired in.  feature-box-podman-compose
+   ;; above is kept for when they should run unattended again.
+   ;; (feature-box-podman-compose)
    (feature-kanshi
     #:extra-config
+    ;; The triple profile matches the usual desk setup: 4K landscape in the
+    ;; middle, a portrait panel either side.  Without it none of the profiles
+    ;; matched a three-output configuration, so kanshi stayed idle and DP-2
+    ;; was left wherever sway defaulted it.  Geometry mirrors
+    ;; sway-extra-config-service in users/laszlokr.scm -- keep the two in sync.
     `((profile single ((output HDMI-A-1 enable)))
       (profile dual ((output HDMI-A-1 enable)
-                     (output HDMI-A-2 enable)))))))
+                     (output HDMI-A-2 enable)))
+      (profile triple ((output HDMI-A-1 enable mode 1920x1080
+                               position 0,120 transform 90)
+                       (output HDMI-A-2 enable mode 3840x2160
+                               position 1080,0)
+                       (output DP-2 enable mode 1920x1080
+                               position 4920,120 transform 270)))))))
