@@ -221,6 +221,23 @@ same environment, and a fix that makes the narrower one pass can easily make
 the wider one silently worse. The build going green was never sufficient
 evidence that the config was doing what it claimed to.
 
+**Postscript.** The `configs/patches.scm` mechanism above (a load-time patch
+to `elisp-configuration-package` itself) turned out to be solving half of
+this with more machinery than necessary. A separate, parallel branch had
+independently hit and diagnosed the *exact same* modus-themes race — before
+this account of it existed — and fixed the build-time half of the problem
+through rde's own supported knobs instead: `home-emacs-feature-loader-service-type`
+already takes `autoloads?` and `add-to-init-el?`, and setting `autoloads? #f`
+/ `add-to-init-el? #t` gets the same "package builds, feature-loader still
+gets called at real startup" outcome without ever needing a custom package
+patch. The modus-themes ordering fix moved with it, from a `substitute*` over
+generated `.el` files in `patches.scm` to a plain `(require 'modus-themes)`
+ahead of `(require 'feature-loader)` in `init.el` (`users/laszlokr.scm`).
+Once both branches were reconciled, `patches.scm` was deleted outright — see
+`configs/configs.scm`'s `fix-feature-loader` for what replaced it. Same fix,
+fewer moving parts, and it now lives in a file shared by every host instead
+of one bolted onto Emacs's own build system.
+
 ## Where things stand
 
 The Reform boots Guix System from NVMe, with Debian on the SD card as a
@@ -230,11 +247,18 @@ usual sway + Emacs setup, with `librewolf` in place of chromium/firefox and
 `abiword`/`gnumeric` in place of libreoffice, and the Guile nREPL workflow
 sacrificed to an ARM-specific `guile-fibers` version conflict. rde's actual
 feature activation — evil, vertico, themes, all of it — works correctly at
-real startup, which took three separate fixes across two sessions to
-actually confirm rather than assume.
+real startup, which took three separate fixes across two sessions (and a
+later reconciliation with parallel work that had fixed half of it a cleaner
+way) to actually confirm rather than assume.
+
+Since then: the onboard Wi-Fi (Realtek RTL8822CS) got its missing `rtw88`
+kernel driver turned on via a `customize-linux` variant, a known firmware
+low-power-state bug got a NetworkManager powersave-disable workaround, and
+`sing-box` (via the `rosenthal` channel, not upstream guix/nonguix) is wired
+up on both `box` and the Reform for the same VPN config.
 
 What's next for this machine is tracked in the README's planned-improvements
-list: mail via mu4e, a sing-box setup, a system-wide Catppuccin light/dark
-toggle, a real answer for LibreOffice-class apps on aarch64 (an ARM build
-farm of its own is one option), and better Wi-Fi than the stock module plus
-dongle.
+list: mail via mu4e, a system-wide Catppuccin light/dark toggle, a real
+answer for LibreOffice-class apps on aarch64 (an ARM build farm of its own is
+one option), and a more compact/reliable Wi-Fi dongle if the driver fix and
+powersave workaround together still aren't enough.
