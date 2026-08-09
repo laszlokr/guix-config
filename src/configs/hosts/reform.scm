@@ -344,18 +344,24 @@ architecture fixups this host needs."
 
 ;;; Home-side architecture fixup
 ;;
-;; users/laszlokr.scm is shared with box and lists "openscad" among the
-;; home-profile-extra-packages -- fine on x86_64, but it has no aarch64
-;; substitute at all (measured: 0.0% on bordeaux) and fails to build from
-;; source here (confirmed: a real build failure, not a transient one).
-;; Filtered out for this host only; box keeps it unchanged.  Re-check with:
+;; users/laszlokr.scm is shared with box and lists these packages among the
+;; home-profile-extra-packages -- fine on x86_64, but none of them have an
+;; aarch64 substitute on bordeaux (measured 0.0% for each), and all three
+;; are full from-source compiles of large C/C++ codebases (openscad pulls
+;; in CGAL; firefox is nongnu's gnu-build-system source build, not a binary
+;; repackage; libreoffice is glib-or-gtk-build-system and one of the
+;; largest builds in Guix).  Each is a many-hour build on a 4 GB A311D and
+;; a strong OOM-kill candidate (openscad/CGAL confirmed OOM-killed on
+;; cc1plus after ~29 minutes).  Filtered out for this host only; box keeps
+;; them unchanged.  librewolf remains as this host's browser.  Re-check
+;; with:
 ;;
-;;   guix weather --system=aarch64-linux openscad
+;;   guix weather --system=aarch64-linux openscad firefox libreoffice
 
 (define %reform-absent-profile-packages
   ;; Matched by package name, not by identity: the package objects here
   ;; come from the (rde …) closure, not from this module.
-  '("openscad"))
+  '("openscad" "firefox" "libreoffice"))
 
 ;; home-profile-service-type is only ever *instantiated* as an essential
 ;; service (seeded from home-environment-packages); the package list our
