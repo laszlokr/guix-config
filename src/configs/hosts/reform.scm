@@ -389,6 +389,18 @@ architecture fixups this host needs."
                        (service-value svc)))
       svc))
 
+;; libreoffice is dropped above (no aarch64 substrate, OOM-kill risk), but
+;; this host still needs something for word documents and spreadsheets.
+;; AbiWord + Gnumeric cover that and are both fully substitutable on
+;; aarch64 (measured: 100% on bordeaux), so no local build at all.  Re-check
+;; with:
+;;
+;;   guix weather --system=aarch64-linux abiword gnumeric
+(define reform-extra-profile-service
+  (simple-service 'reform-office-suite
+                  home-profile-service-type
+                  (map specification->package '("abiword" "gnumeric"))))
+
 (define-public (reform-home-environment config)
   "Return the <home-environment> for CONFIG, an <rde-config>, with the
 architecture fixups this host needs."
@@ -396,8 +408,9 @@ architecture fixups this host needs."
     (home-environment
      (inherit he)
      (services
-      (map drop-absent-profile-packages
-           (home-environment-user-services he))))))
+      (cons reform-extra-profile-service
+            (map drop-absent-profile-packages
+                 (home-environment-user-services he)))))))
 
 
 ;;; Host-specific features
