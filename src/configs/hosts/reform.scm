@@ -5,6 +5,7 @@
   #:use-module (gnu home services)
   #:use-module (gnu packages)
   #:use-module (gnu packages glib)
+  #:use-module (guix gexp)
   #:use-module (guix packages)
   #:use-module (gnu packages linux)
   #:use-module (gnu services)
@@ -194,9 +195,9 @@
 ;; share one, and shows the newest.  The variable is the 7.0 one.
 ;;
 ;; linux-firmware (nonguix) is kept from the shared feature set: the
-;; CM4's Wi-Fi/Bluetooth is a Broadcom SDIO part that needs brcmfmac
-;; blobs.  The kernel itself is the libre one; only the firmware is
-;; nonfree.
+;; Banana Pi CM4's Wi-Fi/Bluetooth is a Realtek RTL8822CS SDIO combo chip
+;; (driver rtw88/rtw8822cs) that needs rtw88/rtw8822c_fw.bin.  The kernel
+;; itself is the libre one; only the firmware is nonfree.
 
 (define %reform-initrd-modules
   ;; %base-initrd-modules must NOT be used here.  It expands to
@@ -286,7 +287,21 @@
    ;; PATH, which is all dbus-run-session needs to find it.
    (simple-service 'reform-dbus-on-path
                    profile-service-type
-                   (list dbus))))
+                   (list dbus))
+   ;; The RTL8822CS's rtw88 firmware has a known low-power-state bug on
+   ;; this exact module -- see MNT's own forum thread "A311D wifi issues,
+   ;; 'firmware failed to leave lps state', disconnects"
+   ;; (community.mnt.re/t/2112) -- that drops the connection every
+   ;; 60s-15min under NetworkManager's default Wi-Fi power-saving.  This is
+   ;; very likely most of what makes "stock Reform wifi" look weak, as
+   ;; opposed to the antenna itself.  wifi.powersave = 2 disables power
+   ;; saving outright (NM's enum: 0 default, 1 ignore, 2 disable, 3 enable).
+   (simple-service 'reform-wifi-disable-powersave
+                   etc-service-type
+                   (list (list "NetworkManager/conf.d/wifi-powersave-off.conf"
+                               (plain-file
+                                "wifi-powersave-off.conf"
+                                "[connection]\nwifi.powersave = 2\n"))))))
 
 
 ;;; Architecture fixup applied after the features are folded
