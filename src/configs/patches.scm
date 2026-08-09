@@ -10,12 +10,7 @@
 ;; phase: that phase actually *executes* the autoload-copied top-level call
 ;; (e.g. (feature-loader), which requires every rde-* feature file) in an
 ;; isolated --batch emacs whose load-path is only this one package's own
-;; propagated-inputs.  Cross-feature calls -- e.g. rde-fonts pulling in
-;; fontaine, whose enable-theme hook calls modus-themes-get-current-theme --
-;; aren't resolvable there, even though they work fine in a real Emacs
-;; session where the *whole* profile (every rde-* package) is on the load
-;; path together.  So this is a build-time-only artifact of an
-;; unrepresentatively narrow validation environment, not a real bug.
+;; propagated-inputs, which can be narrower than the full profile.
 ;;
 ;; The old fix here stripped every ";;;###autoload" cookie to dodge the
 ;; crash -- but that cookie is also the ONLY thing that makes rde's
@@ -30,6 +25,30 @@
 ;; compiled autoloads file as a sanity check, so no functionality is lost,
 ;; and the autoload cookie -- and therefore real runtime activation --
 ;; stays intact.
+;;
+;; That alone isn't sufficient though: with autoloading restored, a SEPARATE
+;; real (not build-time-only) bug surfaces in rde's generated code.
+;; rde-modus-themes.el installs `(advice-add 'enable-theme :after
+;; 'rde-modus-themes-run-after-enable-theme-hook)' unconditionally and
+;; immediately, but only actually loads the modus-themes library (which
+;; defines `modus-themes-get-current-theme', called from that hook) via a
+;; `load-theme' deferred to `after-init-hook'.  rde-fonts.el *also* defers
+;; its own `enable-theme'-triggering call (fontaine-set-preset) to
+;; `after-init-hook'.  Since `add-hook' prepends by default, and rde-fonts
+;; is required *after* rde-modus-themes in feature-loader's sequence,
+;; fontaine's hook ends up running FIRST -- triggering the advice before
+;; modus-themes' own library has ever loaded, hence "Symbol's function
+;; definition is void: modus-themes-get-current-theme".  Confirmed live on
+;; the Reform: this reproduces on real startup, not just in the narrow
+;; build-time validation environment.
+;;
+;; Fix by making feature-loader.el eagerly (require 'modus-themes) as the
+;; very first thing it does, before any per-feature require or hook-add
+;; runs -- modus-themes is already on feature-loader's load path (it's a
+;; propagated-input of the rde-modus-themes feature-entry, which
+;; feature-loader's own propagated-inputs is a union over), so this just
+;; changes *when* it loads, guaranteeing the function exists no matter
+;; which after-init-hook entry fires first.
 (define (install-patch! mod)
   (let ((v (module-variable mod 'elisp-configuration-package)))
     (when v
@@ -44,7 +63,16 @@
                    ((#:phases phases #~%standard-phases)
                     #~(modify-phases #$phases
                         (replace 'validate-compiled-autoloads
-                          (lambda _ #t))))))))))))
+                          (lambda _ #t))
+                        (add-before 'make-autoloads
+                          'eagerly-require-modus-themes
+                          (lambda _
+                            (for-each
+                             (lambda (f)
+                               (substitute* f
+                                 (("\\(require 'guix-emacs\\)")
+                                  "(require 'guix-emacs) (require 'modus-themes)")))
+                             (find-files "." "\\.el$"))))))))))))))
     v))
 
 (define (apply-patches!)
