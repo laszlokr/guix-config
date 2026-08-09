@@ -95,8 +95,10 @@
 (define-public reform-os
   (reform-operating-system reform-config))
 
+;; Not rde-config-home-environment directly: same reasoning as reform-os,
+;; see hosts/reform.scm.
 (define-public reform-he
-  (rde-config-home-environment reform-config))
+  (reform-home-environment reform-config))
 
 ;; mintsystem — HP laptop, home environment only
 ;; (commented out until mintsystem.scm has real UUIDs)

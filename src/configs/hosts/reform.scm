@@ -1,7 +1,11 @@
 (define-module (configs hosts reform)
   #:use-module (gnu bootloader)
   #:use-module (gnu bootloader extlinux)
+  #:use-module (gnu home)
+  #:use-module (gnu home services)
+  #:use-module (gnu packages)
   #:use-module (gnu packages glib)
+  #:use-module (guix packages)
   #:use-module (gnu packages linux)
   #:use-module (gnu services)
   #:use-module (gnu services base)
@@ -336,6 +340,58 @@ architecture fixups this host needs."
      (services
       (modify-services (operating-system-user-services os)
         (rde-account-service-type account => (drop-absent-groups account)))))))
+
+
+;;; Home-side architecture fixup
+;;
+;; users/laszlokr.scm is shared with box and lists "openscad" among the
+;; home-profile-extra-packages -- fine on x86_64, but it has no aarch64
+;; substitute at all (measured: 0.0% on bordeaux) and fails to build from
+;; source here (confirmed: a real build failure, not a transient one).
+;; Filtered out for this host only; box keeps it unchanged.  Re-check with:
+;;
+;;   guix weather --system=aarch64-linux openscad
+
+(define %reform-absent-profile-packages
+  ;; Matched by package name, not by identity: the package objects here
+  ;; come from the (rde …) closure, not from this module.
+  '("openscad"))
+
+;; home-profile-service-type is only ever *instantiated* as an essential
+;; service (seeded from home-environment-packages); the package list our
+;; own users/laszlokr.scm contributes -- and every other one contributed
+;; by an rde feature -- is a separate, anonymously-typed service that just
+;; *extends* it.  There is no bound service-type to hand `modify-services'
+;; for any single one of those, so filter generically: walk every user
+;; service, and for any whose type extends home-profile-service-type,
+;; drop the absent packages from its value.  Entries may be a bare
+;; <package> or a (package output) pair (see the "packages" field comment
+;; in gnu/home.scm), hence the two-armed name lookup.
+(define (package-entry-name entry)
+  (package-name (if (pair? entry) (car entry) entry)))
+
+(define (extends-home-profile? svc)
+  (any (lambda (ext) (eq? (service-extension-target ext) home-profile-service-type))
+       (service-type-extensions (service-kind svc))))
+
+(define (drop-absent-profile-packages svc)
+  (if (and (extends-home-profile? svc) (list? (service-value svc)))
+      (service (service-kind svc)
+               (remove (lambda (entry)
+                         (member (package-entry-name entry)
+                                 %reform-absent-profile-packages))
+                       (service-value svc)))
+      svc))
+
+(define-public (reform-home-environment config)
+  "Return the <home-environment> for CONFIG, an <rde-config>, with the
+architecture fixups this host needs."
+  (let ((he (rde-config-home-environment config)))
+    (home-environment
+     (inherit he)
+     (services
+      (map drop-absent-profile-packages
+           (home-environment-user-services he))))))
 
 
 ;;; Host-specific features
