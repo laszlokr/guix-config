@@ -47,17 +47,22 @@ make reform/system/emulated-build # produces what the Reform downloads (needs qe
 make reform/system/cross-dry-run  # structural check only; cross does not build
 ```
 
-Installing the Reform: [doc/reform-build-box.md](doc/reform-build-box.md)
-(serving builds from `box`) then
+The story of getting the Reform to a working Guix desktop — why it's set up
+this way, and every sharp edge hit along the way — is in
+[doc/reform-guix-desktop.md](doc/reform-guix-desktop.md). The step-by-step
+procedures it references: [doc/reform-build-box.md](doc/reform-build-box.md)
+(serving builds from `box`) and
 [doc/reform-install.md](doc/reform-install.md) (the `guix system init`
 checklist).
 
 ### Planned improvements
 
 1. Consistent configs based on rde for `box` and `mintsystem` [x]
-2. Customize the configuration
+2. `reform` as a working daily-driver Guix desktop [x]
+3. Customize the configuration
    - System-wide vim keys [x]
-   - Consistent colorscheme based on palenight [ ]
+   - System-wide Catppuccin theme with a light/dark toggle (apps + userstyles
+     for supporting websites) [ ]
    - Emacs as main client for:
      - Mail (mu4e) [ ]
      - Telegram (telega) [ ]
@@ -66,7 +71,14 @@ checklist).
      - emacs-frame-only-mode [ ]
      - SPC as leader key (Doom Emacs style keybindings) [ ]
      - UI based on packages made by Nicolas Rougier (NANO Emacs) [ ]
-3. Populate `mintsystem` file system UUIDs and finalize host config [ ]
+4. Populate `mintsystem` file system UUIDs and finalize host config [ ]
+5. `reform` as a full portable/travel machine
+   - sing-box on `reform` [ ]
+   - A real answer for LibreOffice-class apps on aarch64 — possibly a
+     personal ARM build farm, since bordeaux doesn't substitute them [ ]
+   - Wi-Fi without the dongle, or at least a smaller compatible one — the
+     stock module is weak [ ]
+   - Agentic coding on the road (opencode or similar) [ ]
 
 ## Remote hosts
 
