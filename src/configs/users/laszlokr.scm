@@ -57,7 +57,32 @@
    home-emacs-service-type
    (home-emacs-extension
     (init-el
-     `((with-eval-after-load 'simple
+     `(;; Actually invoke the feature loader.
+       ;;
+       ;; The feature-loader package only *defines* (feature-loader); it does
+       ;; not call it.  Upstream rde emits the call via an ;;;###autoload
+       ;; cookie when autoloads? is #t, but that call is exactly what crashes
+       ;; headless batch Emacs during validate-compiled-autoloads, so we build
+       ;; with autoloads? #f (see configs/configs.scm) and add-to-init-el? #t
+       ;; gives us the `require' only.  Without this call the package loads but
+       ;; no feature is ever pulled in, and Emacs comes up completely bare.
+       ;;
+       ;; The `require' is repeated here so the call does not depend on where
+       ;; this form lands relative to the one add-to-init-el? inserts, and the
+       ;; whole thing is wrapped in with-demoted-errors so a failure downgrades
+       ;; to a *Messages* entry instead of aborting init and leaving Emacs bare.
+       ;; modus-themes must be loaded first.  feature-loader requires rde-fonts,
+       ;; which requires fontaine, which enables a theme; that fires rde's
+       ;; after-enable-theme hook, which calls modus-themes-get-current-theme.
+       ;; In emacs-modus-themes 5.3.0 that function is not autoloaded, so if
+       ;; modus-themes.el has not been loaded by then the hook dies with
+       ;; void-function and takes the rest of init with it.
+       (with-demoted-errors "feature-loader failed: %S"
+         (require 'modus-themes)
+         (require 'feature-loader)
+         (feature-loader))
+
+       (with-eval-after-load 'simple
          (setq-default display-fill-column-indicator-column 80)
          (setq geiser-mode-auto-p nil)
          (setq blink-cursor-mode 1)
@@ -156,8 +181,23 @@
   (simple-service
    'sway-extra-config
    home-sway-service-type
-   `((output HDMI-A-1 pos 0 0 res 1920x1080)
-     (output HDMI-A-2 pos 1920 0 res 3840x2160)
+   ;; Three displays, 4K landscape in the middle flanked by two portrait ones.
+   ;;
+   ;;   HDMI-A-1  left,   1920x1080 rotated clockwise         -> 1080x1920
+   ;;   HDMI-A-2  centre, 3840x2160 landscape
+   ;;   DP-2      right,  1920x1080 rotated counter-clockwise -> 1080x1920
+   ;;
+   ;; Positions are in post-rotation layout coordinates, so the rotated panels
+   ;; are 1080 wide, not 1920:  0 | 1080..4920 | 4920.
+   ;; The portrait monitors are offset by y=120 to centre them against the
+   ;; 2160-tall middle screen ((2160 - 1920) / 2); set y=0 to top-align instead.
+   ;;
+   ;; Rotation direction (90/270) is confirmed correct per-panel; only swap
+   ;; those if a specific panel comes up upside down again.  Position (left vs
+   ;; right) is what moved here -- HDMI-A-1 is the left panel, DP-2 the right.
+   `((output HDMI-A-1 pos 0 120 res 1920x1080 transform 90)
+     (output HDMI-A-2 pos 1080 0 res 3840x2160)
+     (output DP-2 pos 4920 120 res 1920x1080 transform 270)
      ,@(map (lambda (x) `(workspace ,x output HDMI-A-2)) (iota 8 1))
 
      ;; (workspace 9 output DP-2)
