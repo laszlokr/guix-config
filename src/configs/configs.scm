@@ -49,7 +49,34 @@
 ;;     so this host still has a browser.  Re-check with:
 ;;
 ;;       guix weather --system=aarch64-linux ungoogled-chromium
-(define %reform-dropped-features '(kernel qemu ungoogled-chromium))
+;;
+;;   guile — feature-guile puts guile-ares-rs in the home profile, and on
+;;     aarch64 that collides irreconcilably with shepherd:
+;;
+;;       profile contains conflicting entries for guile-fibers
+;;         guile-fibers@1.4.3 ... propagated from guile-ares-rs
+;;         guile-fibers@1.1.1 ... propagated from shepherd@1.0.9
+;;
+;;     This is architecture-specific by design.  guix's shepherd package
+;;     does, in gnu/packages/admin.scm:
+;;
+;;       (replace "guile-fibers"
+;;         ;; Work around <https://codeberg.org/guile/fibers/issues/89>.
+;;         ;; This affects any system without a functional real-time clock
+;;         ;; (RTC), but in practice these are typically single-board
+;;         ;; computers.
+;;         (if (or (target-arm?) (target-riscv64?))
+;;             guile-fibers-1.1
+;;             guile-fibers))
+;;
+;;     so on ARM shepherd is deliberately held at fibers 1.1 while
+;;     guile-ares-rs tracks the latest.  Nothing to fix locally -- the two
+;;     cannot share a profile here.  box is unaffected, which is exactly why
+;;     the same home config builds there and not on the Reform.
+;;
+;;     Cost: emacs-arei / the Guile nREPL workflow.  Guile itself is
+;;     unaffected; it stays available system-wide.
+(define %reform-dropped-features '(kernel qemu ungoogled-chromium guile))
 
 (define %laszlokr-features/reform
   (remove (lambda (f) (memq (feature-name f) %reform-dropped-features))
