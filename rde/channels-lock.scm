@@ -27,4 +27,14 @@
         (make-channel-introduction
          "b89e78b863c214b74751352e0e659a5e1d6c955d"
          (openpgp-fingerprint
-          "2841 9AC6 5038 7440 C7E9  2FFA 2208 D209 58C1 DEB0")))))
+          "2841 9AC6 5038 7440 C7E9  2FFA 2208 D209 58C1 DEB0"))))
+      (channel
+       (name 'rosenthal)
+       (url "https://github.com/rakino/rosenthal")
+       (branch "trunk")
+       (commit "ecdb9300210f635147bc3728539806666653175f")
+       (introduction
+        (make-channel-introduction
+         "7677db76330121a901604dfbad19077893865f35"
+         (openpgp-fingerprint
+          "13E7 6CD6 E649 C28C 3385  4DF5 5E5A A665 6149 17F7")))))

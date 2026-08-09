@@ -19,7 +19,9 @@
   #:use-module (rde features)
   #:use-module (rde features base)
   #:use-module (rde features system)
-  #:use-module (rde system services accounts))
+  #:use-module (rde system services accounts)
+  #:use-module (rosenthal packages networking)
+  #:use-module (rosenthal services networking))
 
 ;;; MNT Reform with a Banana Pi CM4 module (Amlogic A311D, aarch64).
 ;;;
@@ -331,7 +333,20 @@
                    (list (list "NetworkManager/conf.d/wifi-powersave-off.conf"
                                (plain-file
                                 "wifi-powersave-off.conf"
-                                "[connection]\nwifi.powersave = 2\n"))))))
+                                "[connection]\nwifi.powersave = 2\n"))))
+   ;; sing-box is not in guix or nonguix, hence the rosenthal channel
+   ;; (github.com/rakino/rosenthal) -- it already ships both the package
+   ;; (go-vendored-build-system, so no transitive Go-module packaging) and
+   ;; a proper sing-box-service-type.  Same client config already running
+   ;; on box; not shared through this repo -- config-file below is a bare
+   ;; path string, which rosenthal's file-object? accepts alongside actual
+   ;; file-like objects specifically so secrets never have to go through
+   ;; the store or git, the same reasoning as box's podman-compose .env
+   ;; file. Copy the same JSON box already runs to this exact path on the
+   ;; Reform by hand; nothing here manages its contents.
+   (service sing-box-service-type
+            (sing-box-configuration
+             (config-file "/etc/sing-box/config.json")))))
 
 
 ;;; Architecture fixup applied after the features are folded
