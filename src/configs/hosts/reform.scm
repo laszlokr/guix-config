@@ -198,6 +198,36 @@
 ;; Banana Pi CM4's Wi-Fi/Bluetooth is a Realtek RTL8822CS SDIO combo chip
 ;; (driver rtw88/rtw8822cs) that needs rtw88/rtw8822c_fw.bin.  The kernel
 ;; itself is the libre one; only the firmware is nonfree.
+;;
+;; Stock linux-libre-arm64-mnt-reform does not build that driver at all --
+;; `# CONFIG_RTW88 is not set` in the built kernel's own .config, confirmed
+;; by extracting it, alongside no rtw88*.ko anywhere in the module tree.
+;; This is a gap in this kernel's defconfig, not a libre/nonfree-firmware
+;; exclusion: cfg80211, mac80211 and CONFIG_MMC (SDIO's bus) are already
+;; enabled here, and this same kernel happily ships ath9k, ath10k, iwlwifi
+;; and brcmfmac -- every one of which needs nonfree firmware exactly like
+;; rtw88 does. linux-firmware above already carries the file this chip
+;; needs (rtw88/rtw8822c_fw.bin, confirmed in its source tree); only the
+;; driver module was ever missing.
+;;
+;; CONFIG_RTW88_8822CS is the per-device+bus leaf symbol (Realtek's
+;; Kconfig: `config RTW88_8822CS / depends on MMC / select RTW88_CORE
+;; RTW88_SDIO RTW88_8822C`) -- `select' pulls in those three automatically.
+;; The true top gate, `config RTW88 / tristate / depends on MAC80211`, is
+;; not itself reachable via any leaf's `select', so it is set explicitly
+;; too. Verified only at the Scheme level (customize-linux constructs a
+;; valid <package>) -- there is no substitute for a private kernel variant
+;; like this, so the real test is a native aarch64 build, which has to
+;; happen on the box (under qemu binfmt -- see doc/reform-build-box.md)
+;; or on the Reform itself. Expect it to be genuinely slow either way;
+;; a from-scratch kernel compile is not something a defconfig tweak can
+;; shortcut.
+(define %reform-kernel
+  (customize-linux
+   #:name "linux-libre-arm64-mnt-reform-rtw88"
+   #:linux linux-libre-arm64-mnt-reform
+   #:configs '("CONFIG_RTW88=m"
+               "CONFIG_RTW88_8822CS=m")))
 
 (define %reform-initrd-modules
   ;; %base-initrd-modules must NOT be used here.  It expands to
@@ -447,7 +477,7 @@ architecture fixups this host needs."
     #:mapped-devices reform-mapped-devices
     #:swap-devices reform-swap-devices)
    (feature-kernel
-    #:kernel linux-libre-arm64-mnt-reform
+    #:kernel %reform-kernel
     #:firmware (list (@ (nongnu packages linux) linux-firmware))
     #:base-initrd-modules %reform-initrd-modules
     #:kernel-arguments %reform-kernel-arguments)
