@@ -234,7 +234,7 @@ which runs, with `ROOT_MOUNT_POINT=/mnt`:
 
 ```sh
 sudo RDE_TARGET=reform-system ./pre-inst-env target/profiles/guix/bin/guix system \
-     --substitute-urls='http://box.lan:3000 …' \
+     --substitute-urls='http://box.lan:3001 …' \
      init ./src/configs/configs.scm /mnt
 ```
 
@@ -245,7 +245,7 @@ Notes:
 - `./pre-inst-env` sets `GUILE_LOAD_PATH` so the `(configs …)` modules
   resolve. It runs under `sudo`, so the load path is set on the root side —
   don't try to export it beforehand, `sudo` drops it.
-- Edit `REFORM_SUBSTITUTE_URLS` in the Makefile once `box.lan:3000` is real,
+- Edit `REFORM_SUBSTITUTE_URLS` in the Makefile once `box.lan:3001` is real,
   or override per-invocation:
   `make reform/system/init REFORM_SUBSTITUTE_URLS=--substitute-urls='…'`.
 - **Do not pass `--no-bootloader`.** There is no bootloader *installer* for
@@ -371,7 +371,7 @@ Reconfigure from the Reform, still fetching everything from the box:
 cd ~/guix-config
 sudo RDE_TARGET=reform-system GUILE_LOAD_PATH="$PWD/src" \
      ./target/profiles/guix/bin/guix system reconfigure \
-     --substitute-urls='http://box.lan:3000 …' \
+     --substitute-urls='http://box.lan:3001 …' \
      src/configs/configs.scm
 ```
 

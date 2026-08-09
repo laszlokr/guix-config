@@ -177,26 +177,33 @@ afterwards.  `signing-key.sec` never leaves the box.
 
 ## 4. Run `guix publish` on the box
 
-Preferred — as a system service, in `box.scm`:
+Configured in `box.scm` as a system service:
 
 ```scheme
 (service guix-publish-service-type
          (guix-publish-configuration
           (host "0.0.0.0")     ;default "localhost" is not reachable from the LAN
-          (port 3000)
+          (port 3001)
           (compression '(("zstd" 3)))
           (advertise? #f)      ;#t requires an mDNS/Avahi setup
           (ttl (* 30 24 3600))))
 ```
 
+Port 3001, not the more obvious 3000: 3000 is already bound on the box by
+Open WebUI (`docker/ai/compose.yml`, `127.0.0.1:3000:8080`). That bind is
+loopback-only, but `guix-publish` has to listen on `0.0.0.0` to be reachable
+from the Reform at all, and `0.0.0.0:N` can't coexist with `127.0.0.1:N` —
+whichever service starts second just fails to bind. Check `docker/README.md`'s
+port table before picking a port here if the podman stacks change.
+
 The service runs the daemon as an unprivileged user itself — you do not
 choose.  Reconfigure, then `sudo herd status guix-publish`.
 
 By hand, for a one-off (note the port differs: the CLI defaults to 8080, the
-service to 80):
+service to 80 — pick whatever's actually free, checking the same port table):
 
 ```sh
-sudo guix publish --user=nobody --port=3000 --compression=zstd:3
+sudo guix publish --user=nobody --port=3001 --compression=zstd:3
 ```
 
 Start it as root — it must read `/etc/guix/signing-key.sec` and bind the port
@@ -245,7 +252,7 @@ Add a drop-in (`sudo systemctl edit guix-daemon`) that clears and re-sets
 [Service]
 ExecStart=
 ExecStart=<the exact ExecStart from 'systemctl cat', with:> \
-  --substitute-urls='https://ci.guix.gnu.org https://bordeaux.guix.gnu.org https://substitutes.nonguix.org http://box.lan:3000'
+  --substitute-urls='https://ci.guix.gnu.org https://bordeaux.guix.gnu.org https://substitutes.nonguix.org http://box.lan:3001'
 ```
 
 ```sh
@@ -260,14 +267,14 @@ a static IP) — check with `getent hosts box.lan`.
 Verify the two halves independently:
 
 ```sh
-curl http://box.lan:3000/                          # "Guix Substitute Server" page
-guix weather --substitute-urls=http://box.lan:3000 hello
+curl http://box.lan:3001/                          # "Guix Substitute Server" page
+guix weather --substitute-urls=http://box.lan:3001 hello
 ```
 
 `guix weather` reporting 0% while `curl` works usually means the key is not
 authorized, or the box has not built that item yet.
 
-A per-command `--substitute-urls=http://box.lan:3000` also works and is a good
+A per-command `--substitute-urls=http://box.lan:3001` also works and is a good
 way to test before editing the unit; the drop-in is what makes it stick.
 
 ## 6. Why `guix publish` and not `guix offload`

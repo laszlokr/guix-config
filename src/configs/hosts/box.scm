@@ -1,6 +1,7 @@
 (define-module (configs hosts box)
   #:use-module (gnu packages containers)
   #:use-module (gnu services)
+  #:use-module (gnu services base)
   #:use-module (gnu services shepherd)
   #:use-module (gnu services ssh)
   #:use-module (gnu system file-systems)
@@ -93,7 +94,25 @@
      (service openssh-service-type
               (openssh-configuration
                (password-authentication? #f)
-               (permit-root-login 'prohibit-password)))))
+               (permit-root-login 'prohibit-password)))
+     ;; Serves substitutes to `reform' (see doc/reform-build-box.md) so its
+     ;; guix pull/system reconfigure mostly download instead of building
+     ;; under QEMU emulation.  Port 3000 -- guix publish's usual example
+     ;; port, and what earlier docs here assumed -- is already bound to
+     ;; Open WebUI (docker/ai/compose.yml, 127.0.0.1:3000:8080).  That's a
+     ;; loopback-only bind, but this service needs host "0.0.0.0" to be
+     ;; reachable from the Reform at all, and 0.0.0.0:N and 127.0.0.1:N
+     ;; can't both be bound -- so this needs its own, actually-free port.
+     ;; Keep this in sync with REFORM_SUBSTITUTE_URLS in the Makefile and
+     ;; the box.lan references in doc/reform-build-box.md and
+     ;; doc/reform-install.md if it ever moves again.
+     (service guix-publish-service-type
+              (guix-publish-configuration
+               (host "0.0.0.0")
+               (port 3001)
+               (compression '(("zstd" 3)))
+               (advertise? #f)
+               (ttl (* 30 24 3600))))))
    (feature-box-podman-compose)
    (feature-kanshi
     #:extra-config
