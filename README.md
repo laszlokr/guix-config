@@ -55,37 +55,7 @@ procedures it references: [doc/reform-build-box.md](doc/reform-build-box.md)
 [doc/reform-install.md](doc/reform-install.md) (the `guix system init`
 checklist).
 
-### Planned improvements
-
-1. Consistent configs based on rde for `box` and `mintsystem` [x]
-2. `reform` as a working daily-driver Guix desktop [x]
-3. Customize the configuration
-   - System-wide vim keys [x]
-   - System-wide Catppuccin theme with a light/dark toggle (apps + userstyles
-     for supporting websites) [ ]
-   - Emacs as main client for:
-     - Mail (mu4e) [ ]
-     - Telegram (telega) [ ]
-     - Matrix (ement + pantalaimon) [ ]
-   - Find ways to apply:
-     - emacs-frame-only-mode [ ]
-     - SPC as leader key (Doom Emacs style keybindings) [ ]
-     - UI based on packages made by Nicolas Rougier (NANO Emacs) [ ]
-4. Populate `mintsystem` file system UUIDs and finalize host config [ ]
-5. `reform` as a full portable/travel machine
-   - sing-box on `reform` [ ]
-   - A real answer for LibreOffice-class apps on aarch64 — possibly a
-     personal ARM build farm, since bordeaux doesn't substitute them [ ]
-   - Wi-Fi without the dongle, or at least a smaller compatible one — the
-     stock module is weak [ ]
-   - Agentic coding on the road (opencode or similar) [ ]
-
-## Remote hosts
-
-The list of remote hosts for laszlo.is domain. The desired setup includes:
-
-1. Email server [ ]
-2. Personal website [ ]
-3. Matrix and Pantalaimon [ ]
-4. File sync (currently Nextcloud, but can change to Syncthing) [ ]
-5. Wireguard VPN (currently use [Wirehole](https://github.com/IAmStoxe/wirehole), could try same setup with Guix) [ ]
+Planned work and open wishlist items (desktop polish, remaining hosts, the
+larger remote-infrastructure migration) live in
+[doc/wishlist.md](doc/wishlist.md) and
+[doc/guix-everywhere-roadmap.md](doc/guix-everywhere-roadmap.md), not here.
