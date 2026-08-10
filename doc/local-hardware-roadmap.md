@@ -120,24 +120,11 @@ why the primary-machine question stays open rather than resolved here.
   that single LVM logical volume as Btrfs (single-device, sidestepping the
   multi-device gap) is a viable add-on — not a reason to reinstall
   everything with Btrfs now.
-- "Rhizome" is a real, confirmed project, not a stray idea: a personal
-  local AI/LLM "life-OS" — tracking `opencode` agent activity, visualizing
-  and querying an Obsidian knowledge base plus a large personal
-  book/scientific-article library via Qdrant, running n8n automations, with
-  a dashboard (possibly a custom Emacs interface later) tying it together.
-  `box` becomes its home: bulk storage for the book/media library, backups,
-  Arcus SaaS + other dev containers, and the rhizome data/services
-  themselves, using the new NVMe + both SATA bays. The explicit long-term
-  plan is to move the *inference* workload off `box` onto a future
-  high-memory mini PC (an AMD "Strix Halo"-class unified-memory box) once
-  acquired, keeping `box`'s role as storage/orchestration. **Design
-  implication**: build rhizome's data layer (Qdrant store, Obsidian vault,
-  whatever additional DB) so it's addressable over the network rather than
-  hard-wired to `box`'s local disk paths — that's what makes the later
-  inference-box migration a re-point rather than a rebuild. Full rhizome
-  architecture is its own large project and deliberately **out of scope for
-  this plan** — it needs its own dedicated planning session once the
-  storage/hardware foundation below is in place.
+- "Rhizome" is a real project already being built in a separate session
+  against its own fixed spec — see the dedicated section below for the
+  reality-check against that spec, which supersedes earlier speculation
+  here about its architecture. `box`'s bulk media/book-library and backup
+  role stands regardless of where rhizome's live services end up running.
 - The local/remote split principle: latency-tolerant/always-on services
   live on the VPS; privacy-sensitive services that should survive a home
   power outage live locally. This is why the Pi4's role is framed as an
@@ -273,6 +260,62 @@ Qdrant/Neo4j-style workload itself. If it's meant to survive home power
 outages, it needs its own small UPS — the Pi4 being up doesn't help if the
 outlet it's plugged into is dead.
 
+## Rhizome: reality check against the actual spec
+
+Rhizome (a personal AI/knowledge-base "life-OS" — Obsidian vault + book/
+article library search, a knowledge graph, a signals dashboard) is already
+being built in a separate session against a concrete, opinionated spec, not
+something to design from scratch here. That spec overrides earlier
+speculation about a Postgres+pgvector architecture explored while planning
+this document — worth recording why, since the research behind that idea
+isn't wrong, just inapplicable to this specific build:
+
+- **Fixed stack, no substitution**: SQLite (single file) for the app's own
+  tables, Neo4j Community Edition (one database, every node/relationship
+  tagged with a `vault` property — Community Edition can't do per-vault
+  databases) for the knowledge graph, and Qdrant (one named collection per
+  vault) for vector search — all three as Docker Compose services. The spec
+  explicitly forbids Postgres. Guix does natively package PostgreSQL +
+  `pgvector` (confirmed via research: `postgresql-service-type` plus the
+  `pgvector` package in Guix proper, no container needed) — genuinely
+  useful to know, but only as a candidate for a possible future
+  from-scratch rewrite, not for the version already in progress.
+- **No local inference at all**: embeddings/extraction/cleanup go through
+  hosted Anthropic + Voyage APIs, not `llama-cpp` or any local model. Voice
+  capture happens locally on whichever machine is in use (a standalone
+  script calling local `whisper.cpp` + the Claude API), separate from the
+  Docker stack entirely. This means rhizome barely shares actual runtime
+  infrastructure with `guix-everywhere-roadmap.md`'s Phase D
+  (`llama-cpp`/`gptel` work) — they overlap in category, not in shared
+  technical dependencies.
+- **Deployment target is genuinely unresolved, in both sessions.** The
+  spec's own text says "a personal Hetzner VPS... behind an existing
+  reverse proxy and WireGuard mesh," which doesn't cleanly match this
+  repo's actual VPN setup (sing-box running vless/vmess/hysteria2, not
+  literally WireGuard) or confirm any existing reverse proxy (none found in
+  this repo). Two real paths, left open on purpose:
+  - **VPS**: run it on one of the Hetzner boxes from
+    `guix-everywhere-roadmap.md` (the VPN box, the not-yet-built mail box,
+    or a new third VPS) once that box is on Guix System. `box`/HX90's role
+    becomes bulk file storage the app reads/writes to over the network,
+    not the live app host. This path needs reconciling the spec's
+    "WireGuard mesh"/"existing reverse proxy" assumptions with reality —
+    either update the other session's spec to reference sing-box, or stand
+    up a real reverse proxy (native `nginx-service-type` +
+    `certbot-service-type`, no packaging gaps) and/or a genuine WireGuard
+    tunnel (`wireguard-service-type`, also native) alongside sing-box.
+  - **`box`/HX90 locally**: run the same three-container Compose stack via
+    podman-compose, structurally identical to the `docker/ai/`,
+    `docker/nextcloud/`, `docker/automation/` stacks already in this repo —
+    no new Guix packaging or service work needed, since the stack is fully
+    self-contained. Just a new `docker/rhizome/` directory following the
+    existing convention.
+- **Real gap found regardless of which path wins**: `feature-box-podman-compose`
+  is currently commented out in `box.scm` — none of the existing
+  podman-compose stacks (`ai`, `nextcloud`, `automation`, `odoo`, `search`)
+  actually run today, and a local rhizome deployment would hit the same
+  wall. Worth enabling on `box` regardless of rhizome's fate.
+
 ## Things to confirm before spending money or wiping data
 
 - Physical RAM swap-test result (step 1) — determines both machines' final
@@ -283,6 +326,9 @@ outlet it's plugged into is dead.
 - Exact volume split on `box` (media library / backups / rhizome data) —
   deferred to the rhizome planning session, but needed before writing
   `box.scm`'s new `file-systems` entries.
+- Rhizome's deployment target (VPS vs. `box` locally) and its spec's
+  "WireGuard mesh"/"existing reverse proxy" assumptions — answerable now,
+  independent of any hardware work, by whoever is driving that session.
 
 ## Verification
 

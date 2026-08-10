@@ -170,6 +170,29 @@ Not a server migration — `box` is already Guix System. Changes:
 4. **Qdrant, n8n, gotify**: no native Guix path found for any of them (Qdrant
    has no Guix package; n8n and Gotify are Node.js/Go apps with no Guix
    packaging effort found). Stay in podman-compose, unchanged.
+5. **"Rhizome"** (a personal AI/knowledge-base project — Obsidian vault +
+   book/article library search, a knowledge graph, signals dashboard) is
+   being built in a separate session against a fixed, already-opinionated
+   spec: SQLite + Neo4j Community Edition + Qdrant as a three-container
+   Docker Compose stack, with embeddings/extraction via hosted Anthropic +
+   Voyage APIs — **no local inference, no Postgres**. It shares this
+   phase's category ("box's AI-adjacent stuff") more than its actual
+   runtime stack — it doesn't use `llama-cpp` or any local model, so it's
+   independent of items 1–3 above. Its deployment target (the Hetzner VPS
+   the spec describes vs. running locally on `box` via podman-compose,
+   identical in shape to the `ai`/`nextcloud`/`automation` stacks already
+   here) is still unresolved — see
+   [local-hardware-roadmap.md](local-hardware-roadmap.md) for the full
+   reality-check against its spec, including two spec-vs-reality mismatches
+   worth reconciling with whoever drives that session (it references a
+   "WireGuard mesh" and "existing reverse proxy" that don't match this
+   repo's actual sing-box-based VPN or confirmed absence of a reverse
+   proxy).
+6. **Real gap found while researching this**: `feature-box-podman-compose`
+   is currently commented out in `box.scm` — none of the existing
+   podman-compose stacks (`ai`, `nextcloud`, `automation`, `odoo`, `search`)
+   actually run today. Worth enabling regardless of rhizome's fate, since
+   it's blocking everything already defined in `docker/`.
 
 ### Phase E — Terminal: Ghostty + ghostel
 
