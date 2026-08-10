@@ -217,19 +217,35 @@
 ;; RTW88_SDIO RTW88_8822C`) -- `select' pulls in those three automatically.
 ;; The true top gate, `config RTW88 / tristate / depends on MAC80211`, is
 ;; not itself reachable via any leaf's `select', so it is set explicitly
-;; too. Verified only at the Scheme level (customize-linux constructs a
-;; valid <package>) -- there is no substitute for a private kernel variant
-;; like this, so the real test is a native aarch64 build, which has to
-;; happen on the box (under qemu binfmt -- see doc/reform-build-box.md)
-;; or on the Reform itself. Expect it to be genuinely slow either way;
-;; a from-scratch kernel compile is not something a defconfig tweak can
-;; shortcut.
+;; too. Confirmed live on the Reform: rtw88_8822cs/8822c/sdio/core all load
+;; and attach to mac80211/cfg80211 correctly.
+;;
+;; A second, unrelated kernel gap surfaced once sing-box actually ran here:
+;;
+;;   FATAL start service: post-start inbound/tun[tun-in]: starting TUN
+;;   interface: cleanup rules: list rules: operation not supported
+;;
+;; sing-box's auto_route sets up policy routing (the moral equivalent of
+;; `ip rule') for the TUN interface, which needs CONFIG_IP_MULTIPLE_TABLES
+;; -- and that returns ENOTSUPP over netlink when the kernel doesn't have
+;; it. Confirmed in the same base .config already extracted for the rtw88
+;; work: `# CONFIG_IP_ADVANCED_ROUTER is not set', which gates
+;; IP_MULTIPLE_TABLES entirely out of existence (not merely unset -- Kconfig
+;; drops symbols inside a disabled `if' block from .config altogether, the
+;; same pattern CONFIG_RTW88's children showed). IPV6_MULTIPLE_TABLES was
+;; off too. Both are plain `bool', so `=y' (built into vmlinux), not `=m' --
+;; policy routing is core networking init, not a loadable driver. Anyone
+;; wanting WireGuard-based policy routing later would hit the exact same
+;; wall; this isn't sing-box-specific.
 (define %reform-kernel
   (customize-linux
    #:name "linux-libre-arm64-mnt-reform-rtw88"
    #:linux linux-libre-arm64-mnt-reform
    #:configs '("CONFIG_RTW88=m"
-               "CONFIG_RTW88_8822CS=m")))
+               "CONFIG_RTW88_8822CS=m"
+               "CONFIG_IP_ADVANCED_ROUTER=y"
+               "CONFIG_IP_MULTIPLE_TABLES=y"
+               "CONFIG_IPV6_MULTIPLE_TABLES=y")))
 
 (define %reform-initrd-modules
   ;; %base-initrd-modules must NOT be used here.  It expands to
