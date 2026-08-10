@@ -93,9 +93,7 @@ REFORM_EMULATED=--system=aarch64-linux
 # Substitute servers for the Reform.  Put the box first so it is preferred;
 # override on the command line until it is actually publishing, e.g.
 #   make reform/system/build REFORM_SUBSTITUTE_URLS=
-REFORM_SUBSTITUTE_URLS=--substitute-urls='http://box.lan:3001 \
-https://bordeaux.guix.gnu.org https://ci.guix.gnu.org \
-https://substitutes.nonguix.org'
+REFORM_SUBSTITUTE_URLS=--substitute-urls='https://bordeaux.guix.gnu.org https://ci.guix.gnu.org'
 
 # Extra flags for a single invocation, e.g.
 #   make reform/system/init REFORM_EXTRA_OPTIONS=--skip-checks
