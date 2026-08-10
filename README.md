@@ -56,6 +56,7 @@ procedures it references: [doc/reform-build-box.md](doc/reform-build-box.md)
 checklist).
 
 Planned work and open wishlist items (desktop polish, remaining hosts, the
-larger remote-infrastructure migration) live in
-[doc/wishlist.md](doc/wishlist.md) and
-[doc/guix-everywhere-roadmap.md](doc/guix-everywhere-roadmap.md), not here.
+larger remote-infrastructure migration, and the local hardware/drive/Guix
+rollout plan) live in [doc/wishlist.md](doc/wishlist.md),
+[doc/guix-everywhere-roadmap.md](doc/guix-everywhere-roadmap.md), and
+[doc/local-hardware-roadmap.md](doc/local-hardware-roadmap.md), not here.

@@ -4,8 +4,12 @@ Everything not yet done, moved out of the README to keep that file to hosts
 and usage. For the large multi-host infra migration (mail box, VPN box,
 box's AI stack, terminal), see
 [guix-everywhere-roadmap.md](guix-everywhere-roadmap.md) instead — that plan
-has its own phases and status. This file covers the smaller, per-machine
-items plus the remote-hosts wishlist entries that plan doesn't cover yet.
+has its own phases and status. For the local hardware reorg (drive cascade
+across `box`/`mintsystem`/`reform`, RAM upgrade, getting full Guix System
+onto `mintsystem` and a from-scratch Raspberry Pi 4), see
+[local-hardware-roadmap.md](local-hardware-roadmap.md). This file covers the
+smaller, per-machine items plus the remote-hosts wishlist entries neither
+plan covers yet.
 
 ## Desktop & Emacs polish
 
@@ -25,7 +29,9 @@ items plus the remote-hosts wishlist entries that plan doesn't cover yet.
 
 ## `mintsystem`
 
-- [ ] Populate file system UUIDs and finalize host config
+- [ ] Populate file system UUIDs and finalize host config — now scoped as a
+      full Guix System conversion (not just UUIDs), see
+      [local-hardware-roadmap.md](local-hardware-roadmap.md)
 
 ## `reform` as a full portable/travel machine
 
