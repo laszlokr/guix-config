@@ -104,6 +104,18 @@ If it fails to boot: from rescue media, mount the ESP and restore
 `/boot/efi/EFI.bak` over `/boot/efi/EFI`, and `grub.cfg.bak` over
 `grub.cfg`. That returns you to the previously-working (if stale) state.
 
+## Run log
+
+**2026-08-12** — ran successfully, first time. `guix system reconfigure`
+without `--no-bootloader`, then `sudo make box/system/install-bootloader`
+immediately after with no reboot in the window. `grub-install` reported
+"Installation finished. No error reported." Verification passed: the default
+menu entry's `gnu.system=/gnu/store/91r9ivkvpv3bz94cbha1r5xx1qizp5zg-system`
+matched generation 22's canonical path exactly, and the menu went from 13
+entries (newest May, kernel 6.18.28) to 23, closing a three-month gap. The
+procedure below works as written; the earlier grub-rescue incident really was
+caused by rebooting between the two steps.
+
 ## Keeping it from drifting again
 
 Given the confirmed grub-rescue incident, `--no-bootloader` stays on

@@ -46,12 +46,14 @@ Add a dated one-line entry here when a step's status changes, e.g.:
   timeout`), not running — a hand-started instance from before the service
   existed held the lock on `/var/lib/sing-box/cache.db`. Killed it, service
   now stable. Failure mode documented above the service in `box.scm`.
-- 2026-08-12: **GRUB still frozen at the May generation — and
-  `install-bootloader` alone will not fix it.** That target only installs the
-  EFI binary; the menu comes from `install-boot-config`, which
-  `--no-bootloader` also skips. The target was additionally broken from the
-  day it was written (make-expanded `$(find ...)`, never once succeeded) and
-  was missing `--removable` for box's `grub-efi-removable-bootloader`; both
-  fixed now. Refreshing the menu needs the sequence in
-  [box-bootloader.md](box-bootloader.md), which carries real risk — do it
-  with rescue media to hand, and do not reboot `box` before it is done.
+- 2026-08-12: GRUB menu had been frozen at the May generation since
+  `--no-bootloader` was added — `install-bootloader` alone never fixed that
+  (it writes only the EFI binary; the menu comes from `install-boot-config`,
+  which `--no-bootloader` also skips), and the target was itself broken from
+  the day it was written (make-expanded `$(find ...)`, never once succeeded).
+- 2026-08-12: **GRUB gap now closed.** Ran the
+  [box-bootloader.md](box-bootloader.md) sequence: reconfigure without
+  `--no-bootloader`, then immediately `make box/system/install-bootloader`,
+  no reboot in between. Verified the default menu entry's `gnu.system` store
+  path matches generation 22's canonical path exactly; menu went 13 → 23
+  entries. Not yet reboot-tested, but the boot path is current.
