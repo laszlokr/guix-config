@@ -59,4 +59,6 @@ Planned work and open wishlist items (desktop polish, remaining hosts, the
 larger remote-infrastructure migration, and the local hardware/drive/Guix
 rollout plan) live in [doc/wishlist.md](doc/wishlist.md),
 [doc/guix-everywhere-roadmap.md](doc/guix-everywhere-roadmap.md), and
-[doc/local-hardware-roadmap.md](doc/local-hardware-roadmap.md), not here.
+[doc/local-hardware-roadmap.md](doc/local-hardware-roadmap.md) (live
+progress tracked in [doc/local-hardware-status.md](doc/local-hardware-status.md)),
+not here.
