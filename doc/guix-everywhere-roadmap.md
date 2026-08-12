@@ -32,8 +32,10 @@ building large from-scratch packages.
   never enabled), `reform` (aarch64 laptop, full Guix System, just finished).
 - **docker/** on `box`: 5 podman-compose stacks — `ai` (ollama, open-webui,
   qdrant), `automation` (n8n, gotify), `nextcloud` (postgres, redis,
-  nextcloud), `odoo` (postgres, odoo), `search` (searxng). None auto-start
-  today (`feature-box-podman-compose` is commented out in `box.scm`).
+  nextcloud), `odoo` (postgres, odoo), `search` (searxng). Snapshot at
+  research time: none auto-started (`feature-box-podman-compose` was
+  commented out in `box.scm`) — since resolved, see Phase D item 7 below;
+  only `automation` actually runs at boot today.
 - **Containers**: `feature-podman` + `feature-distrobox` already used by both
   `box` and `reform` via shared `users/laszlokr.scm`; `fix-podman-storage-driver`
   in `configs.scm` already patches around podman's hardcoded btrfs assumption.
@@ -201,11 +203,12 @@ Not a server migration — `box` is already Guix System. Changes:
    item 1 once it exists, instead of a hosted key. Not packaged for Guix;
    would be a new `docker/honcho/compose.yml` stack matching the existing
    convention. Full detail in `local-hardware-roadmap.md`.
-7. **Real gap found while researching this**: `feature-box-podman-compose`
-   is currently commented out in `box.scm` — none of the existing
-   podman-compose stacks (`ai`, `nextcloud`, `automation`, `odoo`, `search`)
-   actually run today. Worth enabling regardless of rhizome's fate, since
-   it's blocking everything already defined in `docker/`.
+7. **Resolved**: `feature-box-podman-compose` now takes a `#:stacks`
+   argument instead of hardcoding all five, and is enabled in `box.scm`
+   scoped to just `automation` (n8n + gotify) for now — the rest stay off
+   until there's an actual need for them. Add a stack's name to `#:stacks`
+   when that changes; no further Guix-side work needed to bring the others
+   up.
 
 ### Phase E — Terminal: Ghostty + ghostel
 

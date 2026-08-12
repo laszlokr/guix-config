@@ -443,11 +443,11 @@ isn't wrong, just inapplicable to this specific build:
     no new Guix packaging or service work needed, since the stacks are
     fully self-contained. Just new `docker/rhizome/` and `docker/honcho/`
     directories following the existing convention.
-- **Real gap found regardless of which path wins**: `feature-box-podman-compose`
-  is currently commented out in `box.scm` — none of the existing
-  podman-compose stacks (`ai`, `nextcloud`, `automation`, `odoo`, `search`)
-  actually run today, and a local rhizome/Honcho deployment would hit the
-  same wall. Worth enabling on `box` regardless of rhizome's fate.
+- **Resolved**: `feature-box-podman-compose` now takes a `#:stacks`
+  argument and is enabled on `box`, scoped to just `automation` for now.
+  A local rhizome and/or Honcho deployment following this same pattern just
+  needs its stack name added to `#:stacks` when it's ready — no remaining
+  Guix-side blocker either way.
 
 ## Things to confirm before spending money or wiping data
 

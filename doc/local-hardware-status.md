@@ -34,3 +34,5 @@ Status legend: `[ ]` not started · `[~]` in progress/blocked · `[x]` done.
 Add a dated one-line entry here when a step's status changes, e.g.:
 
 - 2026-08-12: doc created, nothing started yet.
+- 2026-08-12: `feature-box-podman-compose` gap (guix-everywhere-roadmap.md
+  Phase D item 7) resolved — enabled on `box`, scoped to `automation` only.
