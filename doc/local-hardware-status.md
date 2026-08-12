@@ -42,6 +42,10 @@ Add a dated one-line entry here when a step's status changes, e.g.:
   host` workaround for the netavark bug (see `docker/README.md`), and
   rewriting the Shepherd service to `make-forkexec-constructor` +
   `one-shot?` so it gets logging and an environment at all.
+- 2026-08-12: sing-box on `box` was crash-looping (`initialize cache-file:
+  timeout`), not running — a hand-started instance from before the service
+  existed held the lock on `/var/lib/sing-box/cache.db`. Killed it, service
+  now stable. Failure mode documented above the service in `box.scm`.
 - 2026-08-12: **GRUB still frozen at the May generation — and
   `install-bootloader` alone will not fix it.** That target only installs the
   EFI binary; the menu comes from `install-boot-config`, which

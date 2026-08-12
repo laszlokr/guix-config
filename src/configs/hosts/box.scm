@@ -162,6 +162,20 @@ compose.yml on disk."
      ;;
      ;; from the credential-free template at files/sing-box/config.template.json.
      ;; Same setup as reform; see hosts/reform.scm.
+     ;;
+     ;; If this service crash-loops with
+     ;;
+     ;;     FATAL start service: initialize cache-file: timeout
+     ;;
+     ;; the cause is almost certainly a second sing-box already running --
+     ;; typically one started by hand before the service existed.  Its cache
+     ;; database (/var/lib/sing-box/cache.db) is file-locked, so the service's
+     ;; instance waits ~9s for the lock, gives up, exits 1, and gets
+     ;; respawned forever.  The message names the symptom, not the conflict.
+     ;; Check with `pgrep -a sing-box'; if there are two, stop the service,
+     ;; kill the manual instance, then start the service again.  Note this
+     ;; drops the tunnel, so do not do it over an SSH session routed through
+     ;; the VPN.
      (service sing-box-service-type
               (sing-box-configuration
                (config-file "/etc/sing-box/config.json")))))
