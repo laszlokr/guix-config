@@ -68,13 +68,10 @@ Without `registries.conf`, pulling any image with a short name (e.g.
 resolve to an alias." Without `policy.json`, every image operation fails
 with "no policy.json file found."
 
-### Known issue: `podman network create` is broken in this Guix build
+### Known issue: netavark's network setup is broken in this Guix build
 
-Confirmed (2026-08-12): `podman network create` fails identically as root
-*and* as `laszlokr` — not a missing-config issue, a real bug in this
-channel's podman/netavark pairing (podman 6.0.1, netavark 1.14.1, both
-pinned in `gnu/packages/containers.scm`/`gnu/packages/rust-apps.scm` at the
-same commit — not a version-skew problem):
+Confirmed (2026-08-12), and broader than it first looked. Started as
+`podman network create` failing identically as root *and* as `laszlokr`:
 
 ```
 error: unrecognized subcommand 'create'
@@ -82,26 +79,55 @@ Usage: netavark [OPTIONS] <COMMAND>
 Error: netavark: : EOF
 ```
 
-`podman network ls` and the pre-existing default `podman` bridge network
-both work fine — only *creating a new* named network is broken. Something
-in this build invokes netavark with a podman-level verb it was never meant
-to receive (`create` isn't one of netavark's own subcommands in any
-version — those are `setup`/`teardown`/`update`/`firewalld-reload`), most
-likely a `network_cmd_path`-style misconfiguration rather than anything
-fixable via a local `containers.conf` tweak. Not yet root-caused further or
-reported upstream.
+Working around *that* (attaching to the pre-existing default `podman`
+bridge via `network_mode: bridge` instead of creating a custom network)
+hit a second, deeper failure at actual container-start time:
 
-**Workaround, only viable when a stack's services don't need to talk to
-each other**: use `network_mode: bridge` per-service (attaches to the
-existing default `podman` bridge) instead of a custom `networks:` stanza,
-which is what `automation`'s `compose.yml` does — n8n and gotify are
-independent services with no need for a shared private network. This does
-**not** work for stacks whose services must reach each other by container
-name over a private network — `nextcloud` (app → db, app → redis), `ai`
-(open-webui → ollama), `odoo` (app → db), and any future rhizome/Honcho
-stack all need that and will hit this exact bug when enabled. Root-causing
-and fixing (or reporting) this is a real prerequisite before any of those
-can actually run, not just a config step like the two above.
+```
+Error: unable to start container "...": netavark: failed to load network
+options: IO error: invalid type: sequence, expected a map at line 1 column ...
+```
+
+Isolated with the simplest possible case, no compose involved at all:
+
+```sh
+sudo podman run --rm alpine echo hello
+```
+
+fails the exact same way. **This confirms it's not specific to a custom
+network, to compose, or to this stack — netavark's actual network-
+attachment call is broken for every bridge-networked container on this
+system.** Podman and netavark are pinned at the same channel commit
+(podman 6.0.1, netavark 1.14.1 — `gnu/packages/containers.scm` /
+`gnu/packages/rust-apps.scm`), so it's not a version-skew problem between
+separately-updated packages; it's a real incompatibility or bug in this
+specific pairing as packaged here. Not yet root-caused further or reported
+upstream. This affects any podman use on `box`, not just these compose
+stacks — `feature-podman`/`feature-distrobox` usage on `reform` should be
+assumed affected too until checked.
+
+**Workaround: `network_mode: host` per-service**, which is what
+`automation`'s `compose.yml` now does. Host networking shares the host's
+network namespace directly, so no netns/netavark setup happens at all —
+confirmed to sidestep the bug. Real costs, and this is genuinely a
+workaround, not a fix:
+- No per-container port remapping — a service listens on whatever port
+  it's configured for internally, directly on the host. `automation`'s
+  gotify needed an explicit `GOTIFY_SERVER_PORT: "8090"` added since it
+  otherwise defaults to 80.
+- Every host-networked container shares one network namespace, so ports
+  must be manually kept unique across *all* simultaneously-running
+  stacks, not just within one compose file.
+- Container-to-container communication still works (they share the host's
+  loopback), but must use `localhost`/`127.0.0.1`, not container-name DNS
+  — `nextcloud` would need `POSTGRES_HOST: localhost` instead of `db`, for
+  example.
+- This is the general workaround for `nextcloud`, `ai`, `odoo`, and any
+  future rhizome/Honcho stack too, not just `automation` — worth applying
+  the same pattern rather than treating this as `automation`-specific.
+  Root-causing and actually fixing (or reporting) the underlying netavark
+  bug remains worthwhile regardless, since `network_mode: host` gives up
+  network isolation between stacks.
 
 ## Starting stacks manually
 

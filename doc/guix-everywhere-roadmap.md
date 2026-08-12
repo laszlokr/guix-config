@@ -171,15 +171,18 @@ Not a server migration — `box` is already Guix System. Changes:
    gptel/ellama are actually in daily use.
 4. **Qdrant, n8n, gotify**: no native Guix path found for any of them (Qdrant
    has no Guix package; n8n and Gotify are Node.js/Go apps with no Guix
-   packaging effort found). Stay in podman-compose, unchanged. **Real
-   blocker found enabling `automation` first**: `podman network create` is
-   broken in this Guix build (confirmed bug in the podman 6.0.1/netavark
-   1.14.1 pairing, not a config gap — see `docker/README.md`'s "Known
-   issue" section). `automation` worked around it since n8n and gotify
-   don't need to talk to each other, but the `ai` stack specifically
-   (open-webui → ollama) does, and will hit this exact wall when enabled —
-   root-causing/fixing this bug is a real prerequisite for `ai`, not
-   optional.
+   packaging effort found). Stay in podman-compose, unchanged. **Real bug
+   found enabling `automation` first**: netavark's network-attachment call
+   is broken for *any* bridge-networked container in this Guix build
+   (confirmed with a bare `podman run alpine`, no compose involved — see
+   `docker/README.md`'s "Known issue" section), not just custom-network
+   creation. Workaround confirmed working: `network_mode: host` per
+   service, which `automation` now uses. The same pattern applies to `ai`
+   (open-webui → ollama needs `localhost`, not container-name DNS, under
+   host networking, and unique ports since all host-networked containers
+   share one namespace) — not a dead end, but real extra care per stack,
+   and root-causing/reporting the underlying bug remains worthwhile since
+   host networking gives up isolation between stacks.
 5. **"Rhizome"** (a personal AI/knowledge-base project — Obsidian vault +
    book/article library search, a knowledge graph, signals dashboard) is
    being built in a separate session against a fixed, already-opinionated

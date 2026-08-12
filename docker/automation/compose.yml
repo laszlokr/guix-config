@@ -3,8 +3,6 @@ services:
   n8n:
     image: n8nio/n8n:latest
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:5678:5678"
     environment:
       N8N_BASIC_AUTH_ACTIVE: "true"
       N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
@@ -19,23 +17,24 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    # n8n and gotify don't talk to each other, so there's no need for a
-    # stack-specific network -- attach to podman's pre-existing default
-    # bridge instead of `networks: [internal]`, which would call `podman
-    # network create` and hit a real bug in this Guix build's podman/
-    # netavark pairing (podman 6.0.1 / netavark 1.14.1): `network create`
-    # invokes netavark with an argument it doesn't understand ("error:
-    # unrecognized subcommand 'create'"), confirmed happening identically
-    # as root and as a regular user, so it's not a local config gap.
-    network_mode: bridge
+    # netavark's actual network-attachment call is broken in this Guix
+    # build -- confirmed with a bare `podman run alpine`, no compose
+    # involved, failing the same way ("failed to load network options:
+    # invalid type: sequence, expected a map"). Not specific to a custom
+    # network or to this stack: ANY bridge-networked container hits it.
+    # `network_mode: host` sidesteps netns/netavark entirely, at the cost
+    # of losing per-container port remapping -- n8n listens on 5678
+    # either way, so no `ports:` mapping is needed anymore.
+    network_mode: host
 
   gotify:
     image: gotify/server:latest
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:8090:80"
     environment:
       GOTIFY_DEFAULTUSER_PASS: ${GOTIFY_DEFAULTUSER_PASS}
+      # Under host networking there's no port remapping, so gotify has to
+      # be told to listen on 8090 directly instead of its default (80).
+      GOTIFY_SERVER_PORT: "8090"
     volumes:
       - /data/docker/automation/gotify:/app/data
     logging:
@@ -43,4 +42,4 @@ services:
       options:
         max-size: "5m"
         max-file: "3"
-    network_mode: bridge
+    network_mode: host

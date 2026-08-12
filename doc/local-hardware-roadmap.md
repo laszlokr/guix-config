@@ -445,15 +445,20 @@ isn't wrong, just inapplicable to this specific build:
     directories following the existing convention.
 - **Partially resolved**: `feature-box-podman-compose` now takes a
   `#:stacks` argument and is enabled on `box`, scoped to `automation`. But
-  bringing it up surfaced a real bug: `podman network create` fails in this
-  Guix build regardless of user (confirmed as both root and `laszlokr` —
-  not a config gap; see `docker/README.md`'s "Known issue" section).
-  `automation` worked around it because n8n and gotify don't need to talk
-  to each other. **Honcho's own compose stack (API + Deriver worker +
-  Postgres+pgvector + Redis) absolutely needs real inter-container
-  networking and will hit this exact wall** if deployed locally on `box` —
-  fixing or working around this bug is a real prerequisite for a local
-  Honcho deployment, not just adding its name to `#:stacks`.
+  bringing it up surfaced a real bug: netavark's network-attachment call is
+  broken for any bridge-networked container in this Guix build, confirmed
+  with a bare `podman run alpine` (not a config gap, not specific to custom
+  networks or this stack — see `docker/README.md`'s "Known issue" section).
+  Confirmed workaround: `network_mode: host` per service, which
+  `automation` now uses (n8n and gotify don't need to talk to each other,
+  so this was the easy case). **Honcho's own compose stack (API + Deriver
+  worker + Postgres+pgvector + Redis) needs real inter-container
+  communication**, so the same workaround would require each service to
+  reference `localhost` instead of container-name DNS, plus manually
+  keeping ports unique against everything else running host-networked at
+  the same time — doable, not a dead end, but real extra setup work versus
+  a plain compose file, and worth root-causing the underlying bug properly
+  before relying on host networking long-term.
 
 ## Things to confirm before spending money or wiping data
 
