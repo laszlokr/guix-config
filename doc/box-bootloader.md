@@ -55,10 +55,17 @@ procedure here that can leave the machine unbootable.
    ```
 
 2. Reconfigure *without* `--no-bootloader`, letting guix write a current
-   `grub.cfg` and install its own GRUB. Note guix's EFI installer does set
+   `grub.cfg` and install its own GRUB.
+
+   **This is the step that has already broken this machine once.** A
+   reconfigure with guix's bootloader install left box at a `grub rescue`
+   prompt, and recovery took USB rescue media plus a manual `grub-install`
+   with explicit `--modules`. Guix's EFI installer *does* set
    `GRUB_ENABLE_CRYPTODISK=y` itself (see `install-grub-efi` in
-   `gnu/bootloader/grub.scm`), which is what should pull in the cryptodisk
-   modules — so the May failure may already be moot, but do not assume it:
+   `gnu/bootloader/grub.scm`), so on paper it should carry the cryptodisk
+   modules — but the observed behaviour on this hardware says otherwise, and
+   the observation wins. Expect the binary guix installs here to be
+   unbootable, and treat step 3 as mandatory, not belt-and-braces:
 
    ```sh
    sudo -E guix system reconfigure -L ./src src/configs/configs.scm
@@ -66,12 +73,18 @@ procedure here that can leave the machine unbootable.
 
    (using `RDE_TARGET=box-system` as the Makefile targets do)
 
-3. Immediately re-install the GRUB binary with the modules named explicitly.
-   This overwrites only the EFI binary; the `grub.cfg` from step 2 stays:
+3. **Immediately** re-install the GRUB binary with the modules named
+   explicitly — before rebooting, in the same sitting. This overwrites only
+   the EFI binary; the `grub.cfg` from step 2 stays. This is the same command
+   that recovered the machine from USB last time, so it is known to produce a
+   bootable binary here:
 
    ```sh
    sudo make box/system/install-bootloader
    ```
+
+   The previous grub-rescue incident happened because the machine was
+   rebooted between steps 2 and 3. Do not reboot in that window.
 
 4. **Verify before rebooting.** The menu should now list the current
    generation's kernel:
@@ -93,16 +106,20 @@ If it fails to boot: from rescue media, mount the ESP and restore
 
 ## Keeping it from drifting again
 
-Whichever way step 2 turns out, decide explicitly:
+Given the confirmed grub-rescue incident, `--no-bootloader` stays on
+`box/system/reconfigure` — it is load-bearing, not cruft.
 
-- If guix's own installer works fine now (likely, given it sets
-  `GRUB_ENABLE_CRYPTODISK=y`), **drop `--no-bootloader` from
-  `box/system/reconfigure`** so the menu simply stays current, and keep
-  `box/system/install-bootloader` only as a recovery tool.
-- If it genuinely still breaks boot, keep the flag, but treat
-  "reconfigure normally, then repair the binary" as the standing procedure
-  after any batch of changes worth being able to boot into — and record
-  *why* here, with the actual failure, rather than leaving it implicit.
+That makes "reconfigure normally, then immediately repair the binary" the
+standing procedure whenever you want the menu to catch up to reality, rather
+than something to do only in emergencies. It is worth running after any batch
+of changes you actually want to be able to boot into — otherwise the gap just
+grows again, silently, exactly as it did between May and August.
 
-Until that decision is made, assume the menu is stale and never reboot `box`
-casually.
+The properly declarative fix would be to make guix's own bootloader install
+carry the cryptodisk modules, so no manual repair step is needed. Guix's
+`bootloader-configuration` has no field for extra `grub-install` modules, so
+that likely means a custom `<bootloader>` record wrapping
+`grub-efi-removable-bootloader` with its own installer gexp. Real work, not
+attempted yet — but it is the thing that would actually retire this document.
+
+Until then: assume the menu is stale, and never reboot `box` casually.

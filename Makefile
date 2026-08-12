@@ -71,9 +71,15 @@ box/system/reconfigure: guix
 #
 # Needs root, and needs /boot/efi mounted.
 #
-# --removable matches box's configured grub-efi-removable-bootloader, whose
-# installer passes it too; without it grub-install writes EFI/Guix plus an
-# NVRAM entry rather than the EFI/BOOT/BOOTX64.EFI path the firmware boots.
+# Deliberately does NOT pass --removable, even though box's configured
+# bootloader is grub-efi-removable-bootloader (whose own installer does pass
+# it).  This exact command -- --bootloader-id=Guix, no --removable -- is what
+# was run by hand from USB rescue media to bring box back after a reconfigure
+# dropped it to a grub rescue prompt, so it is *proven* to produce a bootable
+# binary on this machine.  Matching the configured bootloader would arguably
+# be more correct (it would write EFI/BOOT/BOOTX64.EFI instead of EFI/Guix
+# plus an NVRAM entry), but that is inference, and this is evidence; do not
+# "fix" it without testing with rescue media to hand.
 #
 # NOTE the $$(...): inside a recipe, a single $( ) is expanded by *make*, not
 # the shell.  This target originally used $(find ...), which make expanded to
@@ -91,7 +97,6 @@ box/system/install-bootloader:
 	  --target=x86_64-efi \
 	  --efi-directory=/boot/efi \
 	  --bootloader-id=Guix \
-	  --removable \
 	  --modules="cryptodisk luks2 gcry_rijndael gcry_sha256 ext2 part_gpt" \
 	  /dev/nvme0n1
 
