@@ -161,6 +161,23 @@ The rest can still be run manually via `docker compose`/`podman-compose` as
 shown above; add a stack's name to `#:stacks` when it's ready to run
 unattended at boot too.
 
+**`herd status` showing `It is stopped (one-shot)` means success, not
+failure.** These are one-shot services: `podman-compose up -d` starts the
+containers and exits rather than staying resident, so Shepherd marks the
+*service* stopped once the command has exited zero. The containers it
+started keep running independently — check those with `sudo podman ps`,
+which is the real health indicator, not `herd status`.
+
+Each stack logs to `/var/log/podman-<stack>.log` (Shepherd-managed, via
+the service's `#:log-file`). Check there first when a stack won't come up —
+`herd status` alone will not show you why anything failed.
+
+After changing a service definition in `box.scm`, `guix system reconfigure`
+does not always reload a service that is currently in a failing state; use
+`sudo herd restart podman-<stack>` rather than `herd start`, and note that
+reconfigure sometimes prints a "you will need to reboot" hint for changes
+it could not apply live.
+
 ## First-time service setup
 
 Start stacks in dependency order — each stack is independent, but databases
