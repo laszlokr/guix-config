@@ -29,6 +29,44 @@ Status legend: `[ ]` not started · `[~]` in progress/blocked · `[x]` done.
 - [ ] Rhizome local-inference pushback accepted/rejected by the other session
 - [ ] Restic vs. borgbackup chosen for the `box`→VPS job
 
+## Open issue: DNS did not survive the reboot on `box`
+
+Found 2026-08-12 on the first real boot of `box` in ten days. Everything
+routed (pings to 8.8.8.8 and to the VPS both fine) but no name resolved —
+`/etc/resolv.conf` contained only `# This is a placeholder.`, with no
+`nameserver` line.
+
+That placeholder comes from **nscd's activation script**
+(`nscd-activation` in `gnu/services/base.scm`), which writes it only when
+`/etc/resolv.conf` does not already exist, on the assumption NetworkManager
+will then take the file over. NetworkManager had the servers —
+`nmcli dev show wlp3s0` reported `IP4.DNS[1]: 192.168.0.1` from DHCP — but
+never wrote them out. Guix's `network-manager-configuration` defaults
+`dns` to `"default"` (i.e. NM *should* manage resolv.conf), and nothing in
+this repo overrides it, so this looks like a boot-ordering race rather than
+a misconfiguration.
+
+Worked around by hand (`echo "nameserver 1.1.1.1" | sudo tee
+/etc/resolv.conf`) — restores resolution immediately, but does not survive a
+reconfigure, and has not been proven to recur.
+
+**Why this matters for the headless plan**: if it recurs on a headless
+`box`, the result is a machine reachable by IP but unable to resolve
+anything, with no console to fix it. Worth making deterministic *before*
+the monitor comes off, not after.
+
+Next steps, in order:
+1. Reboot once more and see whether it recurs. A one-off race and a
+   persistent misconfiguration need different fixes, and this is cheap to
+   find out.
+2. If it recurs, make it declarative: set
+   `network-manager-configuration`'s `dns` to `"none"` and provide
+   `/etc/resolv.conf` from the config instead. Since sing-box's
+   `hijack-dns` rule intercepts DNS to any address, the literal nameserver
+   in that file barely matters — and if sing-box is down, a plain query to
+   1.1.1.1 still works, so it is robust either way. Tradeoff: hardcodes DNS,
+   which is wrong for a laptop that roams but fine for a stationary desktop.
+
 ## Notes
 
 Add a dated one-line entry here when a step's status changes, e.g.:
