@@ -58,15 +58,42 @@ box/system/reconfigure: guix
 	--no-bootloader \
 	reconfigure ${CONFIGS}
 
-# Run this once after manual grub-install recovery, or after kernel changes.
-# Requires: cryptsetup open /dev/nvme0n1p2 cryptroot (already done at runtime)
-box/system/install-bootloader: guix
-	$(find /gnu/store -name "grub-install" | grep "2\.12" | grep sbin | head -1) \
-	--target=x86_64-efi \
-	--efi-directory=/boot/efi \
-	--bootloader-id=Guix \
-	--modules="cryptodisk luks2 gcry_rijndael gcry_sha256 ext2 part_gpt" \
-	/dev/nvme0n1
+# Re-install the GRUB *binary* with cryptodisk support.
+#
+# IMPORTANT, and not what the old comment here implied: this does NOT update
+# the boot menu.  guix's install-bootloader step does two things --
+# install-boot-config, which writes /boot/grub/grub.cfg (the menu entries),
+# and the bootloader installer, which writes the EFI binary.  --no-bootloader
+# on box/system/reconfigure skips *both*; this target only ever did the
+# second.  So running this alone leaves the menu as stale as it was, still
+# booting whatever generation grub.cfg last recorded.  See
+# doc/box-bootloader.md for the sequence that actually refreshes the menu.
+#
+# Needs root, and needs /boot/efi mounted.
+#
+# --removable matches box's configured grub-efi-removable-bootloader, whose
+# installer passes it too; without it grub-install writes EFI/Guix plus an
+# NVRAM entry rather than the EFI/BOOT/BOOTX64.EFI path the firmware boots.
+#
+# NOTE the $$(...): inside a recipe, a single $( ) is expanded by *make*, not
+# the shell.  This target originally used $(find ...), which make expanded to
+# the empty string -- so the recipe began with "--target=x86_64-efi" and died
+# with "command not found" every single time.  It had therefore never once
+# succeeded since being added in commit 7b74d0b.
+box/system/install-bootloader:
+	@set -e; \
+	grub_install=$$(ls -d /gnu/store/*-grub-efi-*/sbin/grub-install 2>/dev/null | tail -1); \
+	if [ -z "$$grub_install" ]; then \
+	  echo "error: no grub-efi grub-install found in /gnu/store" >&2; exit 1; \
+	fi; \
+	echo "using $$grub_install"; \
+	GRUB_ENABLE_CRYPTODISK=y "$$grub_install" \
+	  --target=x86_64-efi \
+	  --efi-directory=/boot/efi \
+	  --bootloader-id=Guix \
+	  --removable \
+	  --modules="cryptodisk luks2 gcry_rijndael gcry_sha256 ext2 part_gpt" \
+	  /dev/nvme0n1
 
 # reform — MNT Reform, Banana Pi CM4 module (Amlogic A311D, aarch64).
 #

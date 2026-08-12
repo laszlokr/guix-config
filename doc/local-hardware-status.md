@@ -42,6 +42,12 @@ Add a dated one-line entry here when a step's status changes, e.g.:
   host` workaround for the netavark bug (see `docker/README.md`), and
   rewriting the Shepherd service to `make-forkexec-constructor` +
   `one-shot?` so it gets logging and an environment at all.
-- 2026-08-12: **GRUB still frozen at the May generation** — `make
-  box/system/install-bootloader` not yet run. Do not reboot `box` before
-  running it, or it comes back on a three-month-old config.
+- 2026-08-12: **GRUB still frozen at the May generation — and
+  `install-bootloader` alone will not fix it.** That target only installs the
+  EFI binary; the menu comes from `install-boot-config`, which
+  `--no-bootloader` also skips. The target was additionally broken from the
+  day it was written (make-expanded `$(find ...)`, never once succeeded) and
+  was missing `--removable` for box's `grub-efi-removable-bootloader`; both
+  fixed now. Refreshing the menu needs the sequence in
+  [box-bootloader.md](box-bootloader.md), which carries real risk — do it
+  with rescue media to hand, and do not reboot `box` before it is done.
