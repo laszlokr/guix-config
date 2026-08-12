@@ -60,67 +60,50 @@ compose.yml on disk."
        (requirement '(networking))
        (documentation (string-append "Podman Compose stack: " name))
        (respawn? #f)
-       ;; This service's start/stop are a raw system* call, not the usual
-       ;; make-forkexec-constructor -- Shepherd only auto-logs the latter,
-       ;; so without an explicit redirect here podman-compose's actual
-       ;; output goes nowhere Shepherd's own log (/var/log/shepherd.log)
-       ;; or `herd status` ever shows, making failures here look silent
-       ;; even though the underlying command isn't. Confirmed the hard
-       ;; way: `herd start` reported plain failure with zero detail, while
-       ;; the exact same command run manually via sudo printed a real
-       ;; error every time.
+       ;; `podman-compose up -d' starts containers and exits -- it is not
+       ;; a long-running daemon, so this is a one-shot service: Shepherd
+       ;; treats a zero exit as "started" rather than waiting on a process
+       ;; that will never stay up.
+       (one-shot? #t)
+       ;; make-forkexec-constructor rather than a hand-rolled system* in a
+       ;; custom lambda.  The hand-rolled version was tried first and cost
+       ;; several debugging rounds, because Shepherd only wires up logging
+       ;; and environment for the forkexec path:
        ;;
-       ;; Shepherd (PID 1) also runs with a near-empty environment -- no
-       ;; HOME in particular -- unlike an interactive `sudo` shell, where
-       ;; root's HOME is inherited normally. podman/podman-compose may
-       ;; depend on HOME to resolve their own state.
-       ;;
-       ;; redirect-port (tried first) failed: current-output-port here is
-       ;; a string port internal to Shepherd's own logging, not an open
-       ;; file port redirect-port can dup2 against. dup2 on raw fds from
-       ;; open-fdes is the pattern gnu/services/base.scm itself uses for
-       ;; exactly this (its greeter-sway-command) -- operates below
-       ;; Guile's port abstraction entirely, so it doesn't matter what
-       ;; current-output-port is bound to.
-       ;;
-       ;; podman-compose is invoked here via its exact store path
-       ;; (file-append), bypassing PATH entirely -- but podman-compose's
-       ;; own code shells out to the separate `podman` binary by bare
-       ;; name, which does need PATH. podman's own package wraps its PATH
-       ;; with catatonit/conmon/crun/iptables/etc (see the podman package
-       ;; definition's wrap-podman phase), but nothing gives Shepherd's
-       ;; own near-empty PATH any way to find podman itself in the first
-       ;; place. Confirmed missing directly: even a bare `podman-compose`
-       ;; lookup fails under Shepherd-style minimal PATH.
-       (start #~(lambda _
-                  (setenv "HOME" "/root")
-                  (setenv "PATH"
-                          (string-append #$(file-append podman "/bin") ":"
-                                         (or (getenv "PATH") "")))
-                  (dup2 (open-fdes #$log-file
-                                    (logior O_CREAT O_WRONLY O_APPEND) #o640)
-                        1)
-                  (dup2 1 2)
-                  (zero? (system*
-                          #$(file-append podman-compose "/bin/podman-compose")
-                          "-f" #$compose-file
-                          "--env-file" #$env-file
-                          "up" "-d"))))
-       (stop #~(lambda _
-                 (setenv "HOME" "/root")
-                 (setenv "PATH"
-                         (string-append #$(file-append podman "/bin") ":"
-                                        (or (getenv "PATH") "")))
-                 (dup2 (open-fdes #$log-file
-                                   (logior O_CREAT O_WRONLY O_APPEND) #o640)
-                       1)
-                 (dup2 1 2)
-                 (system*
-                  #$(file-append podman-compose "/bin/podman-compose")
-                  "-f" #$compose-file
-                  "--env-file" #$env-file
-                  "down")
-                 #f)))))
+       ;;  * With a bare `system*', podman-compose's stdout/stderr went
+       ;;    nowhere `herd status' or /var/log/shepherd.log ever showed --
+       ;;    every failure looked silent even though running the identical
+       ;;    command by hand printed a real error each time.  #:log-file
+       ;;    gets this for free and Shepherd manages the file itself.
+       ;;  * Redirecting by hand was its own trap: `redirect-port' fails
+       ;;    here ("expecting open file port") because current-output-port
+       ;;    inside a start gexp is a string port internal to Shepherd's
+       ;;    logging, not a file port.
+       ;;  * Shepherd (PID 1) runs with a near-empty environment: no HOME,
+       ;;    and a PATH that cannot find `podman'.  That matters even
+       ;;    though podman-compose itself is named by absolute store path
+       ;;    below, because podman-compose shells out to `podman' by bare
+       ;;    name.  #:environment-variables sets both explicitly.
+       (start #~(make-forkexec-constructor
+                 (list #$(file-append podman-compose "/bin/podman-compose")
+                       "-f" #$compose-file
+                       "--env-file" #$env-file
+                       "up" "-d")
+                 #:log-file #$log-file
+                 #:environment-variables
+                 (list (string-append "PATH=" #$(file-append podman "/bin")
+                                      ":/run/current-system/profile/bin")
+                       "HOME=/root")))
+       (stop #~(make-forkexec-constructor
+                (list #$(file-append podman-compose "/bin/podman-compose")
+                      "-f" #$compose-file
+                      "--env-file" #$env-file
+                      "down")
+                #:log-file #$log-file
+                #:environment-variables
+                (list (string-append "PATH=" #$(file-append podman "/bin")
+                                     ":/run/current-system/profile/bin")
+                      "HOME=/root"))))))
 
   (define (podman-compose-system-services config)
     (list
