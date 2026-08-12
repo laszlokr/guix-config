@@ -36,3 +36,12 @@ Add a dated one-line entry here when a step's status changes, e.g.:
 - 2026-08-12: doc created, nothing started yet.
 - 2026-08-12: `feature-box-podman-compose` gap (guix-everywhere-roadmap.md
   Phase D item 7) resolved — enabled on `box`, scoped to `automation` only.
+- 2026-08-12: `automation` stack confirmed running on `box` — n8n on 5678,
+  gotify on 8090, both verified serving. Took three unrelated fixes: root's
+  missing `/etc/containers/{registries.conf,policy.json}`, a `network_mode:
+  host` workaround for the netavark bug (see `docker/README.md`), and
+  rewriting the Shepherd service to `make-forkexec-constructor` +
+  `one-shot?` so it gets logging and an environment at all.
+- 2026-08-12: **GRUB still frozen at the May generation** — `make
+  box/system/install-bootloader` not yet run. Do not reboot `box` before
+  running it, or it comes back on a three-month-old config.
