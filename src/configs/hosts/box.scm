@@ -74,11 +74,20 @@ compose.yml on disk."
        ;; HOME in particular -- unlike an interactive `sudo` shell, where
        ;; root's HOME is inherited normally. podman/podman-compose may
        ;; depend on HOME to resolve their own state.
+       ;;
+       ;; redirect-port (tried first) failed: current-output-port here is
+       ;; a string port internal to Shepherd's own logging, not an open
+       ;; file port redirect-port can dup2 against. dup2 on raw fds from
+       ;; open-fdes is the pattern gnu/services/base.scm itself uses for
+       ;; exactly this (its greeter-sway-command) -- operates below
+       ;; Guile's port abstraction entirely, so it doesn't matter what
+       ;; current-output-port is bound to.
        (start #~(lambda _
                   (setenv "HOME" "/root")
-                  (let ((log (open-file #$log-file "a")))
-                    (redirect-port log (current-output-port))
-                    (redirect-port log (current-error-port)))
+                  (dup2 (open-fdes #$log-file
+                                    (logior O_CREAT O_WRONLY O_APPEND) #o640)
+                        1)
+                  (dup2 1 2)
                   (zero? (system*
                           #$(file-append podman-compose "/bin/podman-compose")
                           "-f" #$compose-file
@@ -86,9 +95,10 @@ compose.yml on disk."
                           "up" "-d"))))
        (stop #~(lambda _
                  (setenv "HOME" "/root")
-                 (let ((log (open-file #$log-file "a")))
-                   (redirect-port log (current-output-port))
-                   (redirect-port log (current-error-port)))
+                 (dup2 (open-fdes #$log-file
+                                   (logior O_CREAT O_WRONLY O_APPEND) #o640)
+                       1)
+                 (dup2 1 2)
                  (system*
                   #$(file-append podman-compose "/bin/podman-compose")
                   "-f" #$compose-file
