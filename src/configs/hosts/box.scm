@@ -82,8 +82,21 @@ compose.yml on disk."
        ;; exactly this (its greeter-sway-command) -- operates below
        ;; Guile's port abstraction entirely, so it doesn't matter what
        ;; current-output-port is bound to.
+       ;;
+       ;; podman-compose is invoked here via its exact store path
+       ;; (file-append), bypassing PATH entirely -- but podman-compose's
+       ;; own code shells out to the separate `podman` binary by bare
+       ;; name, which does need PATH. podman's own package wraps its PATH
+       ;; with catatonit/conmon/crun/iptables/etc (see the podman package
+       ;; definition's wrap-podman phase), but nothing gives Shepherd's
+       ;; own near-empty PATH any way to find podman itself in the first
+       ;; place. Confirmed missing directly: even a bare `podman-compose`
+       ;; lookup fails under Shepherd-style minimal PATH.
        (start #~(lambda _
                   (setenv "HOME" "/root")
+                  (setenv "PATH"
+                          (string-append #$(file-append podman "/bin") ":"
+                                         (or (getenv "PATH") "")))
                   (dup2 (open-fdes #$log-file
                                     (logior O_CREAT O_WRONLY O_APPEND) #o640)
                         1)
@@ -95,6 +108,9 @@ compose.yml on disk."
                           "up" "-d"))))
        (stop #~(lambda _
                  (setenv "HOME" "/root")
+                 (setenv "PATH"
+                         (string-append #$(file-append podman "/bin") ":"
+                                        (or (getenv "PATH") "")))
                  (dup2 (open-fdes #$log-file
                                    (logior O_CREAT O_WRONLY O_APPEND) #o640)
                        1)
