@@ -163,6 +163,9 @@
      ;; office
      "libreoffice"
 
+     ;; notes
+     "obsidian"
+
      ;; misc
      "nix"
      "obs"
