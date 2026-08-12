@@ -1,8 +1,11 @@
 # Docker Compose stacks
 
-Each subdirectory is a self-contained Docker Compose stack managed as a
-Shepherd system service on `box` (HX90).  The stacks start automatically
-at boot in the order defined in `src/configs/hosts/box.scm`.
+Each subdirectory is a self-contained Docker Compose stack. Stacks named in
+`feature-box-podman-compose`'s `#:stacks` argument in
+`src/configs/hosts/box.scm` start automatically at boot as Shepherd
+services — currently just `automation`. The others can still be run
+manually (see below) until there's an actual need to have them running
+unattended too.
 
 ## Prerequisites
 
@@ -53,30 +56,37 @@ docker compose --project-directory docker/odoo down
 docker compose --project-directory docker/odoo logs -f
 ```
 
-Or use the Shepherd services:
+Or use the Shepherd services — named `podman-<stack>`, not `docker-<stack>`,
+matching `feature-box-podman-compose`'s `provision` in `box.scm`:
 
 ```sh
-sudo herd start docker-odoo
-sudo herd stop  docker-nextcloud
-sudo herd status docker-ai
+sudo herd start podman-odoo
+sudo herd stop  podman-nextcloud
+sudo herd status podman-ai
 ```
+
+Only stacks listed in `feature-box-podman-compose`'s `#:stacks` argument in
+`box.scm` actually run as Shepherd services — currently just `automation`.
+The rest can still be run manually via `docker compose`/`podman-compose` as
+shown above; add a stack's name to `#:stacks` when it's ready to run
+unattended at boot too.
 
 ## First-time service setup
 
 Start stacks in dependency order — each stack is independent, but databases
 must be initialised before the application container uses them:
 
-1. `docker-odoo` — Odoo initialises its own DB on first start.
+1. `podman-odoo` — Odoo initialises its own DB on first start.
    Afterwards open `http://box:8069` and set the master password.
-2. `docker-nextcloud` — Nextcloud auto-installs on first request to
+2. `podman-nextcloud` — Nextcloud auto-installs on first request to
    `http://box:8080`.
-3. `docker-ai` — Pull an initial model:
+3. `podman-ai` — Pull an initial model:
    ```sh
    docker exec -it $(docker ps -qf name=ollama) ollama pull llama3.2
    ```
-4. `docker-automation` — n8n is at `http://box:5678`,
+4. `podman-automation` — n8n is at `http://box:5678`,
    Gotify at `http://box:8090`.
-5. `docker-search` — SearXNG is at `http://box:8888`.
+5. `podman-search` — SearXNG is at `http://box:8888`.
    Update the `secret_key` in `docker/search/settings.yml` before starting.
 
 ## Ports (localhost only)

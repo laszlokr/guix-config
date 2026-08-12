@@ -44,7 +44,13 @@
 
 (define %compose-dir "/home/laszlokr/guix-config/docker")
 
-(define (feature-box-podman-compose)
+(define* (feature-box-podman-compose
+          #:key (stacks '("automation")))
+  "Start each named Podman Compose stack under docker/ at boot via Shepherd.
+STACKS names the subdirectories to enable (out of odoo, nextcloud, ai,
+automation, search) -- only the ones actually wanted, not all five, since
+enabling this doesn't require running every stack that happens to have a
+compose.yml on disk."
   (define (make-podman-compose-service name)
     (let ((compose-file (string-append %compose-dir "/" name "/compose.yml"))
           (env-file     (string-append %compose-dir "/.env")))
@@ -71,8 +77,7 @@
     (list
      (simple-service 'podman-compose-stacks
                      shepherd-root-service-type
-                     (map make-podman-compose-service
-                          (list "odoo" "nextcloud" "ai" "automation" "search")))))
+                     (map make-podman-compose-service stacks))))
 
   (feature
    (name 'box-podman-compose)
@@ -128,10 +133,11 @@
      (service sing-box-service-type
               (sing-box-configuration
                (config-file "/etc/sing-box/config.json")))))
-   ;; Compose stacks are started by hand while the system is up, so the
-   ;; boot-time Shepherd services are not wired in.  feature-box-podman-compose
-   ;; above is kept for when they should run unattended again.
-   ;; (feature-box-podman-compose)
+   ;; Only automation (n8n + gotify) runs unattended for now -- the other
+   ;; four stacks under docker/ (odoo, nextcloud, ai, search) stay off
+   ;; until there's an actual need for them; add their names to #:stacks
+   ;; here when that changes instead of turning all five on at once.
+   (feature-box-podman-compose #:stacks '("automation"))
    (feature-kanshi
     #:extra-config
     ;; The triple profile matches the usual desk setup: 4K landscape in the
