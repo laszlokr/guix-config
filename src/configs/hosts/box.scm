@@ -53,20 +53,32 @@ enabling this doesn't require running every stack that happens to have a
 compose.yml on disk."
   (define (make-podman-compose-service name)
     (let ((compose-file (string-append %compose-dir "/" name "/compose.yml"))
-          (env-file     (string-append %compose-dir "/.env")))
+          (env-file     (string-append %compose-dir "/.env"))
+          (log-file     (string-append "/var/log/podman-" name ".log")))
       (shepherd-service
        (provision (list (string->symbol (string-append "podman-" name))))
        (requirement '(networking))
        (documentation (string-append "Podman Compose stack: " name))
        (respawn? #f)
-       ;; Shepherd (PID 1) runs with a near-empty environment -- no HOME in
-       ;; particular -- unlike an interactive `sudo` shell, where root's
-       ;; HOME is inherited normally. podman/podman-compose depend on HOME
-       ;; being set to resolve their own state correctly; confirmed by
-       ;; running the exact same podman-compose invocation manually (works)
-       ;; versus via `herd start` (failed) with no other difference.
+       ;; This service's start/stop are a raw system* call, not the usual
+       ;; make-forkexec-constructor -- Shepherd only auto-logs the latter,
+       ;; so without an explicit redirect here podman-compose's actual
+       ;; output goes nowhere Shepherd's own log (/var/log/shepherd.log)
+       ;; or `herd status` ever shows, making failures here look silent
+       ;; even though the underlying command isn't. Confirmed the hard
+       ;; way: `herd start` reported plain failure with zero detail, while
+       ;; the exact same command run manually via sudo printed a real
+       ;; error every time.
+       ;;
+       ;; Shepherd (PID 1) also runs with a near-empty environment -- no
+       ;; HOME in particular -- unlike an interactive `sudo` shell, where
+       ;; root's HOME is inherited normally. podman/podman-compose may
+       ;; depend on HOME to resolve their own state.
        (start #~(lambda _
                   (setenv "HOME" "/root")
+                  (let ((log (open-file #$log-file "a")))
+                    (redirect-port log (current-output-port))
+                    (redirect-port log (current-error-port)))
                   (zero? (system*
                           #$(file-append podman-compose "/bin/podman-compose")
                           "-f" #$compose-file
@@ -74,6 +86,9 @@ compose.yml on disk."
                           "up" "-d"))))
        (stop #~(lambda _
                  (setenv "HOME" "/root")
+                 (let ((log (open-file #$log-file "a")))
+                   (redirect-port log (current-output-port))
+                   (redirect-port log (current-error-port)))
                  (system*
                   #$(file-append podman-compose "/bin/podman-compose")
                   "-f" #$compose-file
