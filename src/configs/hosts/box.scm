@@ -59,13 +59,21 @@ compose.yml on disk."
        (requirement '(networking))
        (documentation (string-append "Podman Compose stack: " name))
        (respawn? #f)
+       ;; Shepherd (PID 1) runs with a near-empty environment -- no HOME in
+       ;; particular -- unlike an interactive `sudo` shell, where root's
+       ;; HOME is inherited normally. podman/podman-compose depend on HOME
+       ;; being set to resolve their own state correctly; confirmed by
+       ;; running the exact same podman-compose invocation manually (works)
+       ;; versus via `herd start` (failed) with no other difference.
        (start #~(lambda _
+                  (setenv "HOME" "/root")
                   (zero? (system*
                           #$(file-append podman-compose "/bin/podman-compose")
                           "-f" #$compose-file
                           "--env-file" #$env-file
                           "up" "-d"))))
        (stop #~(lambda _
+                 (setenv "HOME" "/root")
                  (system*
                   #$(file-append podman-compose "/bin/podman-compose")
                   "-f" #$compose-file
