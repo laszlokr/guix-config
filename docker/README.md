@@ -39,6 +39,70 @@ $EDITOR docker/.env   # fill in every TODO value
 
 `docker/.env` is listed in `.gitignore` and must never be committed.
 
+### Also required for root: podman config files Guix doesn't ship by default
+
+`feature-box-podman-compose` runs `podman-compose` as root (Shepherd system
+services default to root), and root's podman has none of the config files
+`feature-podman`'s home-environment fix already gives `laszlokr` (see
+`fix-podman-storage-driver` in `src/configs/configs.scm`). Confirmed missing
+and required, in the order they surface:
+
+```sh
+sudo mkdir -p /etc/containers
+sudo tee /etc/containers/registries.conf > /dev/null <<'CONF'
+unqualified-search-registries = ["docker.io"]
+CONF
+sudo tee /etc/containers/policy.json > /dev/null <<'CONF'
+{
+    "default": [
+        {
+            "type": "insecureAcceptAnything"
+        }
+    ]
+}
+CONF
+```
+
+Without `registries.conf`, pulling any image with a short name (e.g.
+`n8nio/n8n`, not `docker.io/n8nio/n8n`) fails with "short-name ... did not
+resolve to an alias." Without `policy.json`, every image operation fails
+with "no policy.json file found."
+
+### Known issue: `podman network create` is broken in this Guix build
+
+Confirmed (2026-08-12): `podman network create` fails identically as root
+*and* as `laszlokr` — not a missing-config issue, a real bug in this
+channel's podman/netavark pairing (podman 6.0.1, netavark 1.14.1, both
+pinned in `gnu/packages/containers.scm`/`gnu/packages/rust-apps.scm` at the
+same commit — not a version-skew problem):
+
+```
+error: unrecognized subcommand 'create'
+Usage: netavark [OPTIONS] <COMMAND>
+Error: netavark: : EOF
+```
+
+`podman network ls` and the pre-existing default `podman` bridge network
+both work fine — only *creating a new* named network is broken. Something
+in this build invokes netavark with a podman-level verb it was never meant
+to receive (`create` isn't one of netavark's own subcommands in any
+version — those are `setup`/`teardown`/`update`/`firewalld-reload`), most
+likely a `network_cmd_path`-style misconfiguration rather than anything
+fixable via a local `containers.conf` tweak. Not yet root-caused further or
+reported upstream.
+
+**Workaround, only viable when a stack's services don't need to talk to
+each other**: use `network_mode: bridge` per-service (attaches to the
+existing default `podman` bridge) instead of a custom `networks:` stanza,
+which is what `automation`'s `compose.yml` does — n8n and gotify are
+independent services with no need for a shared private network. This does
+**not** work for stacks whose services must reach each other by container
+name over a private network — `nextcloud` (app → db, app → redis), `ai`
+(open-webui → ollama), `odoo` (app → db), and any future rhizome/Honcho
+stack all need that and will hit this exact bug when enabled. Root-causing
+and fixing (or reporting) this is a real prerequisite before any of those
+can actually run, not just a config step like the two above.
+
 ## Starting stacks manually
 
 Run any stack from the repo root (the `--env-file` flag is required because

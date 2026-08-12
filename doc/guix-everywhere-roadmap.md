@@ -171,7 +171,15 @@ Not a server migration — `box` is already Guix System. Changes:
    gptel/ellama are actually in daily use.
 4. **Qdrant, n8n, gotify**: no native Guix path found for any of them (Qdrant
    has no Guix package; n8n and Gotify are Node.js/Go apps with no Guix
-   packaging effort found). Stay in podman-compose, unchanged.
+   packaging effort found). Stay in podman-compose, unchanged. **Real
+   blocker found enabling `automation` first**: `podman network create` is
+   broken in this Guix build (confirmed bug in the podman 6.0.1/netavark
+   1.14.1 pairing, not a config gap — see `docker/README.md`'s "Known
+   issue" section). `automation` worked around it since n8n and gotify
+   don't need to talk to each other, but the `ai` stack specifically
+   (open-webui → ollama) does, and will hit this exact wall when enabled —
+   root-causing/fixing this bug is a real prerequisite for `ai`, not
+   optional.
 5. **"Rhizome"** (a personal AI/knowledge-base project — Obsidian vault +
    book/article library search, a knowledge graph, signals dashboard) is
    being built in a separate session against a fixed, already-opinionated

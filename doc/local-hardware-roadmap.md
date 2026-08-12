@@ -443,11 +443,17 @@ isn't wrong, just inapplicable to this specific build:
     no new Guix packaging or service work needed, since the stacks are
     fully self-contained. Just new `docker/rhizome/` and `docker/honcho/`
     directories following the existing convention.
-- **Resolved**: `feature-box-podman-compose` now takes a `#:stacks`
-  argument and is enabled on `box`, scoped to just `automation` for now.
-  A local rhizome and/or Honcho deployment following this same pattern just
-  needs its stack name added to `#:stacks` when it's ready — no remaining
-  Guix-side blocker either way.
+- **Partially resolved**: `feature-box-podman-compose` now takes a
+  `#:stacks` argument and is enabled on `box`, scoped to `automation`. But
+  bringing it up surfaced a real bug: `podman network create` fails in this
+  Guix build regardless of user (confirmed as both root and `laszlokr` —
+  not a config gap; see `docker/README.md`'s "Known issue" section).
+  `automation` worked around it because n8n and gotify don't need to talk
+  to each other. **Honcho's own compose stack (API + Deriver worker +
+  Postgres+pgvector + Redis) absolutely needs real inter-container
+  networking and will hit this exact wall** if deployed locally on `box` —
+  fixing or working around this bug is a real prerequisite for a local
+  Honcho deployment, not just adding its name to `#:stacks`.
 
 ## Things to confirm before spending money or wiping data
 
