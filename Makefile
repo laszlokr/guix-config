@@ -50,24 +50,31 @@ box/system/build: guix
 	${LOAD_PATH_FLAGS} \
 	build ${CONFIGS}
 
+# No --no-bootloader here any more.  It used to be required (commit 7b74d0b)
+# because guix's stock grub-efi installer produced a binary that could not
+# read this LUKS root, dropping the machine to a grub rescue prompt.  But it
+# also skipped install-boot-config, so the *menu* stopped tracking reality --
+# box booted a three-month-old generation by default while running a current
+# one.  hosts/box.scm now supplies its own bootloader whose installer passes
+# the cryptodisk modules explicitly, so guix can do both halves itself.
+# See doc/box-bootloader.md.
 box/system/reconfigure: guix
 	GUILE_AUTO_COMPILE=0 RDE_TARGET=box-system ${GUIX} system \
 	${SUBSTITUTE_URLS} \
 	${LOAD_PATH_FLAGS} \
 	--fallback \
-	--no-bootloader \
 	reconfigure ${CONFIGS}
 
-# Re-install the GRUB *binary* with cryptodisk support.
+# RECOVERY ONLY.  Normal reconfigures now install the bootloader themselves
+# (see box/system/reconfigure above and the bootloader in hosts/box.scm), so
+# this is here for the case where you are repairing box from rescue media, or
+# where a reconfigure's bootloader step failed and you need to put a known
+# binary back without a full rebuild.
 #
-# IMPORTANT, and not what the old comment here implied: this does NOT update
-# the boot menu.  guix's install-bootloader step does two things --
-# install-boot-config, which writes /boot/grub/grub.cfg (the menu entries),
-# and the bootloader installer, which writes the EFI binary.  --no-bootloader
-# on box/system/reconfigure skips *both*; this target only ever did the
-# second.  So running this alone leaves the menu as stale as it was, still
-# booting whatever generation grub.cfg last recorded.  See
-# doc/box-bootloader.md for the sequence that actually refreshes the menu.
+# Note this does NOT update the boot menu: guix's install-bootloader does two
+# things -- install-boot-config, which writes /boot/grub/grub.cfg, and the
+# installer, which writes the EFI binary.  This target is only the second.
+# See doc/box-bootloader.md.
 #
 # Needs root, and needs /boot/efi mounted.
 #

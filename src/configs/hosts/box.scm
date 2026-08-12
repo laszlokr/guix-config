@@ -1,4 +1,6 @@
 (define-module (configs hosts box)
+  #:use-module (gnu bootloader)
+  #:use-module (gnu bootloader grub)
   #:use-module (gnu packages containers)
   #:use-module (gnu services)
   #:use-module (gnu services base)
@@ -35,6 +37,75 @@
     (device "/dev/mapper/cryptroot")
     (type "ext4")
     (dependencies box-mapped-devices))))
+
+
+;;; Bootloader
+;;
+;; box's root is LUKS-encrypted, and /boot lives on it -- so the GRUB EFI
+;; binary must carry the cryptodisk modules or it cannot read
+;; /boot/grub/grub.cfg at all.  Stock grub-efi-bootloader sets
+;; GRUB_ENABLE_CRYPTODISK=y but passes no --modules, and on this machine
+;; that was not enough: a reconfigure that let guix install the bootloader
+;; left it at a `grub rescue' prompt, recovered only with USB media and a
+;; manual grub-install naming the modules explicitly.
+;;
+;; The workaround until now was --no-bootloader on box/system/reconfigure
+;; plus a manual repair step.  That has a cost beyond the extra command:
+;; guix's install-bootloader does two things -- install-boot-config, which
+;; writes grub.cfg and therefore the *menu*, and the installer, which writes
+;; the binary.  --no-bootloader skips both, so the menu silently stopped
+;; tracking reality; between May and August box booted a three-month-old
+;; generation by default while running a current one.  See
+;; doc/box-bootloader.md.
+;;
+;; This bootloader closes that off properly: same installer as upstream's
+;; make-grub-efi-installer, with --modules added, so guix's own bootloader
+;; step produces a bootable binary and --no-bootloader is no longer needed.
+;;
+;; Deliberately NOT --removable, unlike the grub-efi-removable-bootloader
+;; rde defaults to.  The proven-working install on this machine -- the one
+;; that recovered it from the rescue prompt, and what it boots today -- is
+;; --bootloader-id=Guix without --removable, i.e. EFI/Guix plus an NVRAM
+;; entry rather than EFI/BOOT/BOOTX64.EFI.  Matching the declared bootloader
+;; type would arguably be tidier; this matches what is known to boot.
+
+(define %box-grub-modules
+  ;; Enough to open the LUKS2 root and read /boot/grub from it.  Same list
+  ;; used by the manual recovery command in the Makefile's
+  ;; box/system/install-bootloader target; keep the two in step.
+  "cryptodisk luks2 gcry_rijndael gcry_sha256 ext2 part_gpt")
+
+(define install-grub-efi/cryptodisk
+  ;; Upstream make-grub-efi-installer (gnu/bootloader/grub.scm) verbatim,
+  ;; minus the efi32?/removable? cases box does not use, plus --modules.
+  ;; invoke/quiet comes from (guix build utils), which guix's
+  ;; install-bootloader-program already imports around this gexp.
+  #~(lambda (bootloader efi-dir mount-point)
+      ;; Nothing useful to do when generating a disk image.
+      (when efi-dir
+        (let ((grub-install (string-append bootloader "/sbin/grub-install"))
+              (install-dir (string-append mount-point "/boot"))
+              ;; When installing, efi-dir is commonly mounted below
+              ;; mount-point rather than at /boot/efi.
+              (target-esp (if (file-exists? (string-append mount-point efi-dir))
+                              (string-append mount-point efi-dir)
+                              efi-dir)))
+          (setenv "GRUB_ENABLE_CRYPTODISK" "y")
+          (invoke/quiet grub-install "--bootloader-id=Guix"
+                        "--boot-directory" install-dir
+                        "--efi-directory" target-esp
+                        (string-append "--modules=" #$%box-grub-modules))))))
+
+(define box-grub-bootloader
+  (bootloader
+   (inherit grub-efi-bootloader)
+   (name 'grub-efi-cryptodisk)
+   (installer install-grub-efi/cryptodisk)))
+
+(define box-bootloader-configuration
+  (bootloader-configuration
+   (bootloader box-grub-bootloader)
+   (targets (list "/boot/efi"))))
 
 
 ;;; Podman Compose Shepherd feature
@@ -124,6 +195,8 @@ compose.yml on disk."
    (feature-host-info
     #:host-name "box"
     #:timezone "Europe/Zurich")
+   (feature-bootloader
+    #:bootloader-configuration box-bootloader-configuration)
    (feature-file-systems
     #:file-systems box-file-systems
     #:mapped-devices box-mapped-devices)

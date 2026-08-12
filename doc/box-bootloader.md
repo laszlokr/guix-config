@@ -1,6 +1,32 @@
-# box's bootloader: why the menu goes stale, and how to refresh it safely
+# box's bootloader: the cryptodisk problem and how it was fixed
 
-## The situation
+## Current state (2026-08-12)
+
+**Fixed declaratively — the manual dance below is now history.**
+`hosts/box.scm` defines its own bootloader, `grub-efi-cryptodisk`,
+inheriting `grub-efi-bootloader` with an installer copied from upstream's
+`make-grub-efi-installer` plus an explicit
+`--modules="cryptodisk luks2 gcry_rijndael gcry_sha256 ext2 part_gpt"`.
+That is the same command that recovered this machine from a grub rescue
+prompt, so guix's own bootloader step now produces a binary known to boot
+here. `--no-bootloader` has been removed from `box/system/reconfigure`
+accordingly, and `box/system/install-bootloader` is kept only for recovery.
+
+Verified before deploying: the record inherits `configuration-file`
+unchanged (`/boot/grub/grub.cfg`) — overriding it would break
+`guix system switch-generation` and `roll-back` — and the lowered installer
+gexp emits exactly the intended `grub-install` invocation.
+
+Deliberately not `--removable`, even though rde defaults to
+`grub-efi-removable-bootloader`: the proven-working install on this machine
+writes `EFI/Guix` plus an NVRAM entry, not `EFI/BOOT/BOOTX64.EFI`.
+
+**The first reconfigure after this change is the real test.** Keep rescue
+media to hand for it, and verify as in step 4 below before rebooting.
+
+The rest of this document is the history and the manual fallback.
+
+## The situation that led here
 
 `box/system/reconfigure` passes `--no-bootloader`. That was added deliberately
 in commit `7b74d0b` (2026-05-16) because guix's own bootloader install was
@@ -118,20 +144,17 @@ caused by rebooting between the two steps.
 
 ## Keeping it from drifting again
 
-Given the confirmed grub-rescue incident, `--no-bootloader` stays on
-`box/system/reconfigure` — it is load-bearing, not cruft.
-
-That makes "reconfigure normally, then immediately repair the binary" the
-standing procedure whenever you want the menu to catch up to reality, rather
-than something to do only in emergencies. It is worth running after any batch
-of changes you actually want to be able to boot into — otherwise the gap just
-grows again, silently, exactly as it did between May and August.
-
-The properly declarative fix would be to make guix's own bootloader install
-carry the cryptodisk modules, so no manual repair step is needed. Guix's
+This is now handled declaratively — see "Current state" at the top.
 `bootloader-configuration` has no field for extra `grub-install` modules, so
-that likely means a custom `<bootloader>` record wrapping
-`grub-efi-removable-bootloader` with its own installer gexp. Real work, not
-attempted yet — but it is the thing that would actually retire this document.
+the fix is a custom `<bootloader>` record with its own installer gexp, in
+`hosts/box.scm`.
 
-Until then: assume the menu is stale, and never reboot `box` casually.
+What to watch for on the first reconfigure after that change:
+
+- If it works, the menu simply stays current from now on and nothing here
+  needs doing again. Confirm with step 4's checks.
+- If guix's bootloader step fails or produces an unbootable binary anyway,
+  the recovery is unchanged: `sudo make box/system/install-bootloader`
+  before rebooting, or from rescue media after. Then put `--no-bootloader`
+  back on `box/system/reconfigure` and record what actually failed here,
+  because that would mean the module list is not the whole story.
