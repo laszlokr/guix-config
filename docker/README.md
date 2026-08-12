@@ -97,14 +97,38 @@ sudo podman run --rm alpine echo hello
 fails the exact same way. **This confirms it's not specific to a custom
 network, to compose, or to this stack — netavark's actual network-
 attachment call is broken for every bridge-networked container on this
-system.** Podman and netavark are pinned at the same channel commit
-(podman 6.0.1, netavark 1.14.1 — `gnu/packages/containers.scm` /
-`gnu/packages/rust-apps.scm`), so it's not a version-skew problem between
-separately-updated packages; it's a real incompatibility or bug in this
-specific pairing as packaged here. Not yet root-caused further or reported
-upstream. This affects any podman use on `box`, not just these compose
-stacks — `feature-podman`/`feature-distrobox` usage on `reform` should be
+system.** It affects any podman use on `box`, not just these compose
+stacks; `feature-podman`/`feature-distrobox` usage on `reform` should be
 assumed affected too until checked.
+
+### Root cause: a version mismatch in the pinned guix, fixed upstream
+
+**Podman 6.0 requires netavark and aardvark-dns 2.0.0.** The pinned guix
+(`8db8515a`, 2026-07-15) has podman 6.0.1 but netavark **1.14.1** and
+aardvark-dns **1.17.0** — a full major version behind what podman 6 needs.
+The pin caught guix mid-transition, after podman had been bumped to 6.x but
+before its network backend followed.
+
+That explains both symptoms precisely: podman 6 invokes subcommands
+netavark 1.14 does not have (`unrecognized subcommand 'create'`), and hands
+it a JSON schema it cannot parse (`invalid type: sequence, expected a map`).
+The tell was visible in the package definitions all along — netavark and
+aardvark-dns are released in lockstep upstream, yet guix had them at 1.14.1
+and 1.17.0 respectively, which should not happen in a coherent set.
+
+Current guix has the matched set: **podman 6.0.2, netavark 2.0.0,
+aardvark-dns 2.0.0**. So the real fix is simply to move the pin forward:
+
+```sh
+make -B rde/channels-lock.scm     # regenerate; see the note in profiles.mk
+```
+
+Do that deliberately, not casually. Bumping the guix channel changes
+*everything* on both hosts — kernel included — so it wants its own
+reconfigure-and-verify cycle per machine, and on `reform` it means aarch64
+substitute coverage has to be checked first (`make reform/weather`). It is
+ordinary maintenance, but it is not a small change, which is why the
+workaround below stays documented rather than deleted.
 
 **Workaround: `network_mode: host` per-service**, which is what
 `automation`'s `compose.yml` now does. Host networking shares the host's
@@ -123,11 +147,13 @@ workaround, not a fix:
   — `nextcloud` would need `POSTGRES_HOST: localhost` instead of `db`, for
   example.
 - This is the general workaround for `nextcloud`, `ai`, `odoo`, and any
-  future rhizome/Honcho stack too, not just `automation` — worth applying
-  the same pattern rather than treating this as `automation`-specific.
-  Root-causing and actually fixing (or reporting) the underlying netavark
-  bug remains worthwhile regardless, since `network_mode: host` gives up
-  network isolation between stacks.
+  future rhizome/Honcho stack too, not just `automation`.
+
+Once the channel pin moves forward and bridge networking works again,
+`automation`'s `compose.yml` can go back to a normal `networks:` stanza and
+drop the `GOTIFY_SERVER_PORT` override — worth doing, since host networking
+gives up isolation between stacks and forces manual port de-confliction
+across all of them.
 
 ## Starting stacks manually
 

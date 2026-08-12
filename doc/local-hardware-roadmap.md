@@ -445,20 +445,18 @@ isn't wrong, just inapplicable to this specific build:
     directories following the existing convention.
 - **Partially resolved**: `feature-box-podman-compose` now takes a
   `#:stacks` argument and is enabled on `box`, scoped to `automation`. But
-  bringing it up surfaced a real bug: netavark's network-attachment call is
-  broken for any bridge-networked container in this Guix build, confirmed
-  with a bare `podman run alpine` (not a config gap, not specific to custom
-  networks or this stack — see `docker/README.md`'s "Known issue" section).
-  Confirmed workaround: `network_mode: host` per service, which
-  `automation` now uses (n8n and gotify don't need to talk to each other,
-  so this was the easy case). **Honcho's own compose stack (API + Deriver
-  worker + Postgres+pgvector + Redis) needs real inter-container
-  communication**, so the same workaround would require each service to
-  reference `localhost` instead of container-name DNS, plus manually
-  keeping ports unique against everything else running host-networked at
-  the same time — doable, not a dead end, but real extra setup work versus
-  a plain compose file, and worth root-causing the underlying bug properly
-  before relying on host networking long-term.
+  bringing it up surfaced a real bug, since root-caused: bridge networking
+  is broken for *any* container under the pinned guix (confirmed with a
+  bare `podman run alpine`), because podman 6.0 requires netavark and
+  aardvark-dns 2.0.0 while the pin has netavark 1.14.1 / aardvark-dns
+  1.17.0. Current guix has the matched set, so **moving the channel pin
+  forward fixes it** — see `docker/README.md`. Until then `network_mode:
+  host` works around it (`automation` uses it). **Honcho's stack (API +
+  Deriver + Postgres+pgvector + Redis) needs real inter-container
+  communication**, so under the workaround every service would need
+  `localhost` references plus manual port de-confliction — which makes the
+  channel bump worth doing *before* a local Honcho deployment, rather than
+  building that stack around a workaround.
 
 ## Things to confirm before spending money or wiping data
 

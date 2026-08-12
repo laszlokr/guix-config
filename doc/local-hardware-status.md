@@ -67,6 +67,24 @@ Next steps, in order:
    1.1.1.1 still works, so it is robust either way. Tradeoff: hardcodes DNS,
    which is wrong for a laptop that roams but fine for a stationary desktop.
 
+## Ready to act on
+
+- [ ] **Move the guix channel pin forward** (`make -B rde/channels-lock.scm`).
+      Fixes the netavark bug outright — the pin (`8db8515a`, 2026-07-15)
+      caught guix with podman 6.0.1 but netavark 1.14.1 / aardvark-dns
+      1.17.0, where podman 6.0 requires both at 2.0.0. Current guix has the
+      matched set. Big blast radius (rebuilds both hosts, kernel included),
+      so it wants its own reconfigure-and-verify cycle per machine, and
+      `make reform/weather` first for aarch64 substitute coverage. Once
+      done, revert `docker/automation/compose.yml` to a normal `networks:`
+      stanza and drop the `GOTIFY_SERVER_PORT` override.
+- [ ] **First reconfigure with the new declarative bootloader** — `box.scm`
+      now supplies `grub-efi-cryptodisk` and `--no-bootloader` is gone from
+      the Makefile, so guix installs the bootloader itself. Rescue media to
+      hand, and verify the menu before rebooting; see
+      [box-bootloader.md](box-bootloader.md).
+- [ ] **Reboot `box` once more** to see whether the DNS failure recurs.
+
 ## Notes
 
 Add a dated one-line entry here when a step's status changes, e.g.:
