@@ -9,7 +9,7 @@ Status legend: `[ ]` not started · `[~]` in progress/blocked · `[x]` done.
 ## Sequence (see roadmap doc for full detail on each)
 
 - [ ] 1. Pi4 Guix boot-chain research
-- [ ] 2. HP Envy RAM swap-test (HX90's 64GB → HP Envy)
+- [x] 2. HP Envy RAM swap-test (HX90's 64GB → HP Envy) — passed, 64GB works
 - [ ] 3. HP Envy repair (dust, hinge, bottom-plate/chassis)
 - [ ] 4. Reform webcam/mic purchase, if pursuing Reform-as-daily-driver path
 - [ ] 5. Drive-migration cascade (new NVMe → HX90 → HP Envy → Reform → Pi4 enclosure)
@@ -22,7 +22,7 @@ Status legend: `[ ]` not started · `[~]` in progress/blocked · `[x]` done.
 
 ## Blocking decisions (see roadmap doc's "Things to confirm")
 
-- [ ] RAM swap-test result known
+- [x] RAM swap-test result known — HX90's 64GB runs fine in the HP Envy
 - [ ] HP Envy new hostname chosen
 - [ ] `box` volume split decided (media / backups / rhizome data)
 - [ ] Rhizome deployment target resolved (VPS vs. `box` locally)
@@ -107,6 +107,10 @@ Add a dated one-line entry here when a step's status changes, e.g.:
   (it writes only the EFI binary; the menu comes from `install-boot-config`,
   which `--no-bootloader` also skips), and the target was itself broken from
   the day it was written (make-expanded `$(find ...)`, never once succeeded).
+- 2026-08-13: **HP Envy RAM swap-test passed** (sequence step 2) — the
+  HX90's 64GB runs fine in the Envy. Unblocks the Envy as a full Guix System
+  target (step 8) and removes the memory-capacity question from the
+  drive-migration cascade (step 5). Hostname still unchosen.
 - 2026-08-12: **GRUB gap now closed.** Ran the
   [box-bootloader.md](box-bootloader.md) sequence: reconfigure without
   `--no-bootloader`, then immediately `make box/system/install-bootloader`,
