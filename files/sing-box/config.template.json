@@ -32,9 +32,20 @@
         "tag": "dns-direct",
         "address": "local",
         "detour": "direct"
+      },
+      {
+        "_comment": "Home mesh: resolves the .lan zone via the Pi4's dnsmasq. REPLACE_ME_PI4_LAN_IP is the Pi4's real LAN address (e.g. 192.168.0.x), not its DDNS hostname -- this query itself only needs to reach the Pi4 once home-out is already up.",
+        "tag": "dns-home",
+        "address": "REPLACE_ME_PI4_LAN_IP",
+        "detour": "home-out"
       }
     ],
     "rules": [
+      {
+        "_comment": "Must come before the broader 'outbound: any' rule below -- sing-box evaluates dns.rules top-to-bottom, first match wins, so a .lan rule placed after a rule matching everything would never fire.",
+        "domain_suffix": [".lan"],
+        "server": "dns-home"
+      },
       {
         "outbound": "any",
         "server": "dns-direct"
@@ -106,6 +117,38 @@
       }
     },
     {
+      "_comment": [
+        "Home mesh outbound -- separate from the Hetzner egress outbounds above.",
+        "Dials the Pi4 gateway's hysteria2 inbound, used only for traffic",
+        "matched to the home LAN / .lan zone by route.rules below.",
+        "",
+        "This device needs its OWN password here, matching one entry in the",
+        "Pi4 server's hysteria2 'users' array -- never reuse another device's",
+        "password.  That is what makes a lost/stolen device revocable on its",
+        "own: delete just its entry server-side and reload, nothing else",
+        "changes.",
+        "",
+        "certificate_public_key_sha256 pins the Pi4's self-signed cert by its",
+        "public key hash, which is why server_name below can be an arbitrary",
+        "string rather than a real, publicly-issued-cert-bearing hostname --",
+        "pinning replaces CA trust entirely for this connection.  Get the",
+        "hash with, on the Pi4:",
+        "    openssl x509 -in <cert.pem> -pubkey -noout |",
+        "      openssl pkey -pubin -outform der |",
+        "      openssl dgst -sha256 -binary | base64"
+      ],
+      "type": "hysteria2",
+      "tag": "home-out",
+      "server": "REPLACE_ME_PI4_DDNS_HOSTNAME",
+      "server_port": 8444,
+      "password": "REPLACE_ME_THIS_DEVICE_HOME_PASSWORD",
+      "tls": {
+        "enabled": true,
+        "server_name": "REPLACE_ME_ARBITRARY_SNI",
+        "certificate_public_key_sha256": ["REPLACE_ME_PI4_CERT_PUBKEY_SHA256_BASE64"]
+      }
+    },
+    {
       "type": "direct",
       "tag": "direct"
     },
@@ -124,6 +167,39 @@
       {
         "protocol": "dns",
         "outbound": "dns-out"
+      },
+
+      {
+        "_comment": [
+          "Home mesh, for road devices (phone, mintsystem): the home LAN is",
+          "192.168.0.0/24.  This rule MUST come before the broader LAN",
+          "carve-out below, or it is unreachable dead code -- that carve-out",
+          "already matches 192.168.0.0/16, a superset, and first-match-wins.",
+          "",
+          "KNOWN TRADEOFF, read before copying this file to box or reform:",
+          "those two hosts sit ON 192.168.0.0/24 already.  With this rule in",
+          "place, THEIR OWN local-LAN traffic also detours out through",
+          "home-out (Pi4, over the internet, back in) instead of staying on",
+          "the physical LAN -- wasteful, and it makes local-LAN reachability",
+          "on box/reform depend on the internet and the Pi4 being up, which",
+          "it did not before.  If that is not acceptable on a given host,",
+          "that host's copy of this file can simply omit this rule (or place",
+          "it after the LAN carve-out instead) -- these are hand-copied,",
+          "not templated per-host, so the two copies can differ.  Road",
+          "devices need this rule; box/reform do not."
+        ],
+        "ip_cidr": ["192.168.0.0/24"],
+        "outbound": "home-out"
+      },
+
+      {
+        "_comment": [
+          "Home mesh: the .lan zone, resolved via dns-home above and routed",
+          "the same way as the CIDR rule immediately above -- same",
+          "before-the-carve-out placement, same box/reform tradeoff applies."
+        ],
+        "domain_suffix": [".lan"],
+        "outbound": "home-out"
       },
 
       {

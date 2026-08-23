@@ -11,6 +11,9 @@
   #:use-module (configs hosts box)
   ;; #:use-module (configs hosts mintsystem)  ;; uncomment after filling in UUIDs
   #:use-module (configs hosts reform)
+  ;; #:use-module (configs hosts pi4)  ;; uncomment once the base bring-up
+  ;; milestone in hosts/pi4.scm's own header comment is actually done --
+  ;; this file is scaffolding, not build-ready.  See that file for why.
   #:use-module (configs users laszlokr))
 
 ;;; configs
@@ -198,6 +201,19 @@
 ;; (define-public mintsystem-he
 ;;   (rde-config-home-environment mintsystem-config))
 
+;; pi4 — Raspberry Pi 4, home mesh gateway + .lan DNS + substitute cache.
+;; No home-config generation (system only, headless, no desktop features
+;; apply at all here) -- same reasoning box-he/reform-he don't apply to
+;; this host.  Commented out along with the #:use-module above until the
+;; base bring-up milestone in hosts/pi4.scm is done; that file is
+;; scaffolding, not build-ready.
+;; (define-public pi4-config
+;;   (rde-config
+;;    (features %pi4-features)))
+;;
+;; (define-public pi4-os
+;;   (rde-config-operating-system pi4-config))
+
 
 (define (dispatcher)
   (let ((rde-target (getenv "RDE_TARGET")))
@@ -207,6 +223,7 @@
       ("reform-home" reform-he)
       ("reform-system" reform-os)
       ;; ("mintsystem-home" mintsystem-he)
+      ;; ("pi4-system" pi4-os)
       (_ box-he))))
 
 (dispatcher)
