@@ -261,6 +261,32 @@
      ;;(bindsym $mod+Shift+Return exec "emacsclient -c --eval '(multi-vterm)'" floating enable)
      )))
 
+;; opencode is not packaged in Guix/nonguix/rosenthal -- installed via its
+;; own installer (curl -fsSL https://opencode.ai/install | bash), which
+;; drops the binary at ~/.opencode/bin/opencode and tells you to add that
+;; to PATH by hand in .bashrc/.zshrc.  Doing it here instead makes it
+;; declarative and reconfigure-persistent, the same way everything else in
+;; this file is, rather than a manual edit that a fresh `guix home
+;; reconfigure' has no reason to preserve.
+;;
+;; home-environment-variables-service-type writes into Guix Home's
+;; generated setup-environment script, sourced by the login shell
+;; (confirmed on this exact host: reconfigure symlinks
+;; ~/.config/zsh/.zprofile, which sources it) -- so this reaches zsh
+;; without needing a feature-zsh-specific hook.  Values are emitted with
+;; export VAR="value", double-quoted, so $PATH here expands at shell
+;; start against whatever PATH already is at that point, correctly
+;; prepending rather than clobbering.
+;;
+;; TODO: confirm ~/.opencode/bin is actually where it landed on box
+;; (`ls ~/.opencode/bin`) -- this is the documented installer default, not
+;; independently verified against this specific machine.
+(define opencode-path-service
+  (simple-service
+   'opencode-on-path
+   home-environment-variables-service-type
+   `(("PATH" . "$HOME/.opencode/bin:$PATH"))))
+
 (define (feature-additional-services)
   (feature-custom-services
    #:feature-name-prefix 'laszlokr
@@ -276,7 +302,8 @@
    (list
     emacs-extra-packages-service
     home-extra-packages-service
-    sway-extra-config-service)))
+    sway-extra-config-service
+    opencode-path-service)))
 
 ;;; User-specific features with personal preferences
 
