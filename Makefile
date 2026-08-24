@@ -50,23 +50,62 @@ box/system/build: guix
 	${LOAD_PATH_FLAGS} \
 	build ${CONFIGS}
 
+# No --no-bootloader here any more.  It used to be required (commit 7b74d0b)
+# because guix's stock grub-efi installer produced a binary that could not
+# read this LUKS root, dropping the machine to a grub rescue prompt.  But it
+# also skipped install-boot-config, so the *menu* stopped tracking reality --
+# box booted a three-month-old generation by default while running a current
+# one.  hosts/box.scm now supplies its own bootloader whose installer passes
+# the cryptodisk modules explicitly, so guix can do both halves itself.
+# See doc/box-bootloader.md.
 box/system/reconfigure: guix
 	GUILE_AUTO_COMPILE=0 RDE_TARGET=box-system ${GUIX} system \
 	${SUBSTITUTE_URLS} \
 	${LOAD_PATH_FLAGS} \
 	--fallback \
-	--no-bootloader \
 	reconfigure ${CONFIGS}
 
-# Run this once after manual grub-install recovery, or after kernel changes.
-# Requires: cryptsetup open /dev/nvme0n1p2 cryptroot (already done at runtime)
-box/system/install-bootloader: guix
-	$(find /gnu/store -name "grub-install" | grep "2\.12" | grep sbin | head -1) \
-	--target=x86_64-efi \
-	--efi-directory=/boot/efi \
-	--bootloader-id=Guix \
-	--modules="cryptodisk luks2 gcry_rijndael gcry_sha256 ext2 part_gpt" \
-	/dev/nvme0n1
+# RECOVERY ONLY.  Normal reconfigures now install the bootloader themselves
+# (see box/system/reconfigure above and the bootloader in hosts/box.scm), so
+# this is here for the case where you are repairing box from rescue media, or
+# where a reconfigure's bootloader step failed and you need to put a known
+# binary back without a full rebuild.
+#
+# Note this does NOT update the boot menu: guix's install-bootloader does two
+# things -- install-boot-config, which writes /boot/grub/grub.cfg, and the
+# installer, which writes the EFI binary.  This target is only the second.
+# See doc/box-bootloader.md.
+#
+# Needs root, and needs /boot/efi mounted.
+#
+# Deliberately does NOT pass --removable, even though box's configured
+# bootloader is grub-efi-removable-bootloader (whose own installer does pass
+# it).  This exact command -- --bootloader-id=Guix, no --removable -- is what
+# was run by hand from USB rescue media to bring box back after a reconfigure
+# dropped it to a grub rescue prompt, so it is *proven* to produce a bootable
+# binary on this machine.  Matching the configured bootloader would arguably
+# be more correct (it would write EFI/BOOT/BOOTX64.EFI instead of EFI/Guix
+# plus an NVRAM entry), but that is inference, and this is evidence; do not
+# "fix" it without testing with rescue media to hand.
+#
+# NOTE the $$(...): inside a recipe, a single $( ) is expanded by *make*, not
+# the shell.  This target originally used $(find ...), which make expanded to
+# the empty string -- so the recipe began with "--target=x86_64-efi" and died
+# with "command not found" every single time.  It had therefore never once
+# succeeded since being added in commit 7b74d0b.
+box/system/install-bootloader:
+	@set -e; \
+	grub_install=$$(ls -d /gnu/store/*-grub-efi-*/sbin/grub-install 2>/dev/null | tail -1); \
+	if [ -z "$$grub_install" ]; then \
+	  echo "error: no grub-efi grub-install found in /gnu/store" >&2; exit 1; \
+	fi; \
+	echo "using $$grub_install"; \
+	GRUB_ENABLE_CRYPTODISK=y "$$grub_install" \
+	  --target=x86_64-efi \
+	  --efi-directory=/boot/efi \
+	  --bootloader-id=Guix \
+	  --modules="cryptodisk luks2 gcry_rijndael gcry_sha256 ext2 part_gpt" \
+	  /dev/nvme0n1
 
 # reform — MNT Reform, Banana Pi CM4 module (Amlogic A311D, aarch64).
 #

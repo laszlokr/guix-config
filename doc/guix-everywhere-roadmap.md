@@ -32,8 +32,10 @@ building large from-scratch packages.
   never enabled), `reform` (aarch64 laptop, full Guix System, just finished).
 - **docker/** on `box`: 5 podman-compose stacks — `ai` (ollama, open-webui,
   qdrant), `automation` (n8n, gotify), `nextcloud` (postgres, redis,
-  nextcloud), `odoo` (postgres, odoo), `search` (searxng). None auto-start
-  today (`feature-box-podman-compose` is commented out in `box.scm`).
+  nextcloud), `odoo` (postgres, odoo), `search` (searxng). Snapshot at
+  research time: none auto-started (`feature-box-podman-compose` was
+  commented out in `box.scm`) — since resolved, see Phase D item 7 below;
+  only `automation` actually runs at boot today.
 - **Containers**: `feature-podman` + `feature-distrobox` already used by both
   `box` and `reform` via shared `users/laszlokr.scm`; `fix-podman-storage-driver`
   in `configs.scm` already patches around podman's hardcoded btrfs assumption.
@@ -169,7 +171,53 @@ Not a server migration — `box` is already Guix System. Changes:
    gptel/ellama are actually in daily use.
 4. **Qdrant, n8n, gotify**: no native Guix path found for any of them (Qdrant
    has no Guix package; n8n and Gotify are Node.js/Go apps with no Guix
-   packaging effort found). Stay in podman-compose, unchanged.
+   packaging effort found). Stay in podman-compose, unchanged. **Real bug
+   found enabling `automation` first, now root-caused**: bridge networking
+   is broken for *any* container under the pinned guix, because podman 6.0
+   requires netavark/aardvark-dns 2.0.0 and the pin has netavark 1.14.1 /
+   aardvark-dns 1.17.0. Current guix has the matched set (podman 6.0.2 +
+   netavark 2.0.0 + aardvark-dns 2.0.0), so **moving the channel pin
+   forward is the actual fix** — see `docker/README.md`. Until then
+   `network_mode: host` is the workaround (`automation` uses it); for `ai`
+   that means open-webui reaching ollama over `localhost` rather than
+   container-name DNS, plus manual port de-confliction.
+5. **"Rhizome"** (a personal AI/knowledge-base project — Obsidian vault +
+   book/article library search, a knowledge graph, signals dashboard) is
+   being built in a separate session against a fixed, already-opinionated
+   spec: SQLite + Neo4j Community Edition + Qdrant as a three-container
+   Docker Compose stack, with embeddings/extraction originally spec'd as
+   hosted-Anthropic+Voyage-only, no local inference, no Postgres. **That
+   local-inference stance is now under active pushback**: `box`'s actual
+   CPU (Ryzen 9 5900HX, corrected from an earlier wrong assumption) gives
+   real local-inference headroom for at least the embedding step outright
+   and the cleanup step probably, with extraction as a local-first,
+   Claude-fallback candidate — see
+   [local-hardware-roadmap.md](local-hardware-roadmap.md) for the
+   per-task breakdown and benchmarks. If that pushback lands, rhizome
+   would end up sharing the `llama-cpp` endpoint from item 1 above after
+   all, rather than being fully independent of it. Its deployment target
+   (the Hetzner VPS the spec describes vs. running locally on `box` via
+   podman-compose, identical in shape to the `ai`/`nextcloud`/`automation`
+   stacks already here) is still unresolved — see the same doc for the
+   full reality-check against its spec, including two spec-vs-reality
+   mismatches worth reconciling with whoever drives that session (it
+   references a "WireGuard mesh" and "existing reverse proxy" that don't
+   match this repo's actual sing-box-based VPN or confirmed absence of a
+   reverse proxy).
+6. **Honcho** (Plastic Labs' open-source agent memory/user-modeling
+   service) is a new candidate for local agentic work, alongside rhizome.
+   Docker Compose based, requires PostgreSQL+pgvector (hard requirement)
+   and a mandatory LLM API key — but that key can point at any
+   OpenAI-compatible endpoint, including the native `llama-cpp` server from
+   item 1 once it exists, instead of a hosted key. Not packaged for Guix;
+   would be a new `docker/honcho/compose.yml` stack matching the existing
+   convention. Full detail in `local-hardware-roadmap.md`.
+7. **Resolved**: `feature-box-podman-compose` now takes a `#:stacks`
+   argument instead of hardcoding all five, and is enabled in `box.scm`
+   scoped to just `automation` (n8n + gotify) for now — the rest stay off
+   until there's an actual need for them. Add a stack's name to `#:stacks`
+   when that changes; no further Guix-side work needed to bring the others
+   up.
 
 ### Phase E — Terminal: Ghostty + ghostel
 

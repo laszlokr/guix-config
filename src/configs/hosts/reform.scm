@@ -217,8 +217,29 @@
 ;; RTW88_SDIO RTW88_8822C`) -- `select' pulls in those three automatically.
 ;; The true top gate, `config RTW88 / tristate / depends on MAC80211`, is
 ;; not itself reachable via any leaf's `select', so it is set explicitly
-;; too. Confirmed live on the Reform: rtw88_8822cs/8822c/sdio/core all load
-;; and attach to mac80211/cfg80211 correctly.
+;; too.
+;;
+;; Confirmed live on the Reform: the driver now builds and probes (it never
+;; did before), but the probe itself fails --
+;;
+;;   rtw88_8822cs mmc2:0001:1: Direct firmware load for /*(DEBLOBBED)*/
+;;     failed with error -2
+;;   rtw88_8822cs mmc2:0001:1: failed to request firmware
+;;   rtw88_8822cs mmc2:0001:1: failed to load firmware
+;;   rtw88_8822cs mmc2:0001:1: failed to setup chip efuse info
+;;   rtw88_8822cs mmc2:0001:1: failed to setup chip information
+;;   rtw88_8822cs mmc2:0001:1: probe with driver rtw88_8822cs failed with
+;;     error -22
+;;
+;; -2 is ENOENT: linux-libre's deblob step rewrites the driver's firmware
+;; filename string (rtw88/rtw8822c_fw.bin) to the literal comment
+;; /*(DEBLOBBED)*/ at build time, so request_firmware() asks for a name
+;; that can never resolve. This is a source-level policy block, not a
+;; missing file -- nonguix's linux-firmware above carries the real blob,
+;; but nothing built from linux-libre source can ever ask for it by its
+;; real name. The onboard radio is dead under this kernel permanently;
+;; only a non-libre kernel build for this board would change that. Wifi
+;; here runs off a USB dongle instead.
 ;;
 ;; A second, unrelated kernel gap surfaced once sing-box actually ran here:
 ;;
