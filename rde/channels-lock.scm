@@ -1,8 +1,8 @@
 (list (channel
        (name 'guix)
-       (url "https://git.guix.gnu.org/guix.git")
+       (url "https://git.savannah.gnu.org/git/guix.git")
        (branch "master")
-       (commit "d5d8f66e4675636993c61f5e30bdd8ab8df71ea8")
+       (commit "4c903e549e8e2bc7bb904f7b87421b13cb694c93")
        (introduction
         (make-channel-introduction
          "9edb3f66fd807b096b48283debdcddccfea34bad"
@@ -12,7 +12,7 @@
        (name 'nonguix)
        (url "https://gitlab.com/nonguix/nonguix")
        (branch "master")
-       (commit "3b66965566fe8c96edb5a41fd39a9e5a90ad9b61")
+       (commit "caa8c0b4646b993537be13c9bc819b3df68ab9b2")
        (introduction
         (make-channel-introduction
          "897c1a470da759236cc11798f4e0a5f7d4d59fbc"
@@ -22,7 +22,7 @@
        (name 'rde)
        (url "https://git.sr.ht/~abcdw/rde")
        (branch "master")
-       (commit "70a1881f09c939792eb2ed932dded1f16291a59f")
+       (commit "47fb718f2b1a3f68a03c51a2740c1ada4052bd3c")
        (introduction
         (make-channel-introduction
          "b89e78b863c214b74751352e0e659a5e1d6c955d"
@@ -32,7 +32,7 @@
        (name 'rosenthal)
        (url "https://github.com/rakino/rosenthal")
        (branch "trunk")
-       (commit "ecdb9300210f635147bc3728539806666653175f")
+       (commit "21391bab6e38561488bd807493da1035a85c24cb")
        (introduction
         (make-channel-introduction
          "7677db76330121a901604dfbad19077893865f35"
