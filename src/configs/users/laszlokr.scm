@@ -148,6 +148,7 @@
      "jq" "ncdu"
      "btop"
      "ripgrep" "curl"
+     "node"
 
      ;; virt
      "libvirt" "virt-manager"
