@@ -166,6 +166,13 @@
      ;; notes
      "obsidian"
 
+     ;; ai
+     ;; From the guix-ai-cloud channel (rde/channels.scm) -- not in
+     ;; guix/nonguix/rosenthal.  Replaces the earlier hand-installed
+     ;; ~/.opencode/bin binary, which could not run at all on Guix System
+     ;; (missing /lib64/ld-linux-x86-64.so.2).
+     "opencode"
+
      ;; misc
      "nix"
      "obs"
@@ -260,6 +267,17 @@
      (bindsym $mod+Shift+Return exec "emacsclient -c --eval '(multi-vterm)'")
      ;;(bindsym $mod+Shift+Return exec "emacsclient -c --eval '(multi-vterm)'" floating enable)
      )))
+
+;; opencode used to mean a hand-installed binary at ~/.opencode/bin plus a
+;; PATH export -- and that binary turned out to be unrunnable here anyway:
+;; it is a normal prebuilt Linux ELF expecting /lib64/ld-linux-x86-64.so.2,
+;; which does not exist on Guix System (everything lives under
+;; /gnu/store/...), so it failed with "no such file or directory" even
+;; though the file was right there and executable.  Superseded entirely by
+;; the native `opencode' package below, from the guix-ai-cloud channel
+;; (see rde/channels.scm) -- Guix's binary-build-system packages already
+;; handle the interpreter-patching this needs, so there is nothing left
+;; for this file to do by hand.
 
 (define (feature-additional-services)
   (feature-custom-services

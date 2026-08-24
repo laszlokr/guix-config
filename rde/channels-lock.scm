@@ -37,4 +37,14 @@
         (make-channel-introduction
          "7677db76330121a901604dfbad19077893865f35"
          (openpgp-fingerprint
-          "13E7 6CD6 E649 C28C 3385  4DF5 5E5A A665 6149 17F7")))))
+          "13E7 6CD6 E649 C28C 3385  4DF5 5E5A A665 6149 17F7"))))
+      (channel
+       (name 'guix-ai-cloud)
+       (url "https://codeberg.org/daym/guix-ai-cloud")
+       (branch "master")
+       (commit "36d4baa7593530cf4c0f5f8127abf789591975ec")
+       (introduction
+        (make-channel-introduction
+         "36d4baa7593530cf4c0f5f8127abf789591975ec"
+         (openpgp-fingerprint
+          "76CE C6B1 7274 B465 C02D  B3D9 E71A 3554 2C30 BAA5")))))
