@@ -37,6 +37,24 @@
     "7677db76330121a901604dfbad19077893865f35"
     (openpgp-fingerprint
      "13E7 6CD6 E649 C28C 3385  4DF5 5E5A A665 6149 17F7"))))
+ ;; opencode lives here -- not packaged in guix/nonguix/rosenthal.  No
+ ;; README/introduction snippet is published by the maintainer; the
+ ;; introduction below was derived from the repo's own history instead:
+ ;; commit 36d4baa... is independently GPG-verified by Codeberg (not just
+ ;; self-reported) as signed by the fingerprint below, which also matches
+ ;; .guix-authorizations in the repo.  It is also the exact commit `guix
+ ;; show opencode' already resolved to on box via its separate, unpinned
+ ;; default profile -- consistent, but that is a second data point, not a
+ ;; substitute for guix pull's own signature check, which is the real
+ ;; verification and happens on-device.
+ (channel
+  (name 'guix-ai-cloud)
+  (url "https://codeberg.org/daym/guix-ai-cloud")
+  (introduction
+   (make-channel-introduction
+    "36d4baa7593530cf4c0f5f8127abf789591975ec"
+    (openpgp-fingerprint
+     "76CE C6B1 7274 B465 C02D  B3D9 E71A 3554 2C30 BAA5"))))
  ;; (channel
  ;;  (name 'repkgd)
  ;;  (url "https://git.sr.ht/~laszlo/repkgd")
