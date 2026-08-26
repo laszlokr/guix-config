@@ -172,15 +172,14 @@ Not a server migration — `box` is already Guix System. Changes:
 4. **Qdrant, n8n, gotify**: no native Guix path found for any of them (Qdrant
    has no Guix package; n8n and Gotify are Node.js/Go apps with no Guix
    packaging effort found). Stay in podman-compose, unchanged. **Real bug
-   found enabling `automation` first, now root-caused**: bridge networking
-   is broken for *any* container under the pinned guix, because podman 6.0
-   requires netavark/aardvark-dns 2.0.0 and the pin has netavark 1.14.1 /
-   aardvark-dns 1.17.0. Current guix has the matched set (podman 6.0.2 +
-   netavark 2.0.0 + aardvark-dns 2.0.0), so **moving the channel pin
-   forward is the actual fix** — see `docker/README.md`. Until then
-   `network_mode: host` is the workaround (`automation` uses it); for `ai`
-   that means open-webui reaching ollama over `localhost` rather than
-   container-name DNS, plus manual port de-confliction.
+   found enabling `automation` first, since resolved**: bridge networking
+   was broken for *any* container under the previously-pinned guix, because
+   podman 6.0 requires netavark/aardvark-dns 2.0.0 and that pin had netavark
+   1.14.1 / aardvark-dns 1.17.0. Fixed by moving the channel pin forward
+   (`make -B rde/channels-lock.scm`, confirmed on-device: `podman network
+   create` now works) — see `docker/README.md`. `automation`'s
+   `network_mode: host` workaround has been reverted back to a normal
+   `networks:` stanza with per-service `ports:`.
 5. **"Rhizome"** (a personal AI/knowledge-base project — Obsidian vault +
    book/article library search, a knowledge graph, signals dashboard) is
    being built in a separate session against a fixed, already-opinionated

@@ -69,15 +69,21 @@ Next steps, in order:
 
 ## Ready to act on
 
-- [ ] **Move the guix channel pin forward** (`make -B rde/channels-lock.scm`).
-      Fixes the netavark bug outright — the pin (`8db8515a`, 2026-07-15)
-      caught guix with podman 6.0.1 but netavark 1.14.1 / aardvark-dns
-      1.17.0, where podman 6.0 requires both at 2.0.0. Current guix has the
-      matched set. Big blast radius (rebuilds both hosts, kernel included),
-      so it wants its own reconfigure-and-verify cycle per machine, and
-      `make reform/weather` first for aarch64 substitute coverage. Once
-      done, revert `docker/automation/compose.yml` to a normal `networks:`
-      stanza and drop the `GOTIFY_SERVER_PORT` override.
+- [x] **Move the guix channel pin forward** (`make -B rde/channels-lock.scm`).
+      Fixed the netavark bug outright — the previous pin (`8db8515a`,
+      2026-07-15) caught guix with podman 6.0.1 but netavark 1.14.1 /
+      aardvark-dns 1.17.0, where podman 6.0 requires both at 2.0.0. A
+      single-channel bump to guix alone (`d5d8f66`) broke `guix pull`
+      instead — nonguix's channel code references guix package bindings
+      that drift over time, so guix and nonguix have to move together.
+      Regenerating the whole lock file via the documented mechanism (`guix
+      time-machine -C channels.scm -- describe -f channels`) resolved all
+      four channels to a mutually-compatible set. Confirmed on `box`: built,
+      reconfigured (generation 23, kernel 7.0.14 → 7.1.8, bootloader now
+      `grub-efi-cryptodisk`), rebooted, `podman network create` works.
+      `docker/automation/compose.yml` reverted to a normal `networks:`
+      stanza with per-service `ports:`; `GOTIFY_SERVER_PORT` override
+      dropped.
 - [ ] **First reconfigure with the new declarative bootloader** — `box.scm`
       now supplies `grub-efi-cryptodisk` and `--no-bootloader` is gone from
       the Makefile, so guix installs the bootloader itself. Rescue media to

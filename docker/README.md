@@ -68,7 +68,13 @@ Without `registries.conf`, pulling any image with a short name (e.g.
 resolve to an alias." Without `policy.json`, every image operation fails
 with "no policy.json file found."
 
-### Known issue: netavark's network setup is broken in this Guix build
+### Resolved: netavark's network setup was broken in this Guix build
+
+**Fixed 2026-08-26** by moving the guix channel pin forward (see
+`doc/local-hardware-status.md`) — `podman network create` now works, and the
+`network_mode: host` workaround below has been reverted in
+`docker/automation/compose.yml`. Left the diagnosis in place as a reference
+in case this class of channel-drift bug recurs.
 
 Confirmed (2026-08-12), and broader than it first looked. Started as
 `podman network create` failing identically as root *and* as `laszlokr`:
